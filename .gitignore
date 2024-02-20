@@ -1,3 +1,5 @@
 test_players.py
 server_isolation.py
 sql/isolation.db
+.idea
+submission.py

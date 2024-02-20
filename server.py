@@ -12,15 +12,6 @@ import constants
 app = flask.Flask(__name__)
 
 # enum for game states
-class GameStatus:
-    NEED_SECOND_PLAYER = 'need_second_player'
-    IN_PROGRESS = 'in_progress'
-    FINISHED = 'finished'
-
-
-class QueenStates:
-    HOST_QUEEN = 'host_queen'
-    GUEST_QUEEN = 'guest_queen'
 
 
 @app.route('/game/new', methods=['POST'])
@@ -39,7 +30,7 @@ def host_game():
     c = conn.cursor()
     c.execute(
         "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit) VALUES (?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, GameStatus.NEED_SECOND_PLAYER, request.form['time_limit']))
+        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit']))
     conn.commit()
     conn.close()
     return flask.jsonify({'game_id': game_id, 'player_secret': player_secret})
@@ -56,7 +47,7 @@ def join_game(game_id):
     c = conn.cursor()
     c.row_factory = sqlite3.Row
     # Make sure the game exists and is waiting for a player
-    c.execute("SELECT * FROM isolationgame WHERE uuid = ? AND game_status = ?", (game_id, GameStatus.NEED_SECOND_PLAYER))
+    c.execute("SELECT * FROM isolationgame WHERE uuid = ? AND game_status = ?", (game_id, constants.GameStatus.NEED_SECOND_PLAYER))
     cur_game = c.fetchone()
     if cur_game is None:
         return flask.jsonify({'status': 'error', 'message': 'Game not found or not waiting for a player'}), 400
@@ -80,7 +71,7 @@ def join_game(game_id):
 
     c.execute(
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
-        (request.form['player_name'], player_secret, GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, GameStatus.NEED_SECOND_PLAYER)
+        (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
     )
 
     conn.commit()
@@ -113,11 +104,11 @@ def get_game_status(game_id):
     """Get the state of a game.
     """
     game_status = _get_game_status(game_id)
-    if game_status['game_status'] == GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 5 < time.time():
+    if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 5 < time.time():
         # Update status to finished and set the winner to the other player
         conn = sqlite3.connect('sql/isolation.db')
         c = conn.cursor()
-        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (GameStatus.FINISHED, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], game_id))
+        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], game_id))
         conn.commit()
         conn.close()
         return flask.jsonify(_get_game_status(game_id))
@@ -156,7 +147,7 @@ def make_move(game_id):
         return flask.jsonify({'status': 'error', 'message': 'Game not found'}), 400
 
     # Check that the game is in progress or waiting to start
-    if cur_game['game_status'] != GameStatus.IN_PROGRESS:
+    if cur_game['game_status'] != constants.GameStatus.IN_PROGRESS:
         return flask.jsonify({'status': 'error', 'message': 'Game not in progress'}), 400
 
     # Check that the player is in the game
@@ -177,25 +168,25 @@ def make_move(game_id):
 
     # Check that the timestamp they sent is within 1 second of the server's time
     if abs(client_time - time.time()) > 1:
-        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (GameStatus.FINISHED, other_player, game_id))
+        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
         return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
     # Check their timestamp is within the time limit
     if client_time - cur_game['updated_at'] > cur_game['time_limit']:
         # Set the game as finished
-        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (GameStatus.FINISHED, other_player, game_id))
+        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
         return flask.jsonify({'status': 'error', 'message': 'You took too long!'}), 400
 
     # Create the board based on the game state and make the move
     board = Board.from_json(cur_game['game_state'])
     # Check that the move is legal
     if move not in board.get_player_moves(player_name):
-        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (GameStatus.FINISHED, other_player, game_id))
+        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
         return flask.jsonify({'status': 'error', 'message': 'Illegal move'}), 400
 
     game_over, winner = board.__apply_move__(move)
     new_game_state = board.to_json()
-    new_game_status = GameStatus.FINISHED if game_over else GameStatus.IN_PROGRESS
+    new_game_status = constants.GameStatus.FINISHED if game_over else constants.GameStatus.IN_PROGRESS
     # Update the game state
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
     conn.commit()
