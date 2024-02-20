@@ -17,3 +17,4 @@ creating games and sending moves to each other without exposing their inner logi
 - Host a game with `python client.py --host --name <name> --time_limit <time_limit>`
   - This will give you an ID you can send to someone to join
 - Join a game with `python client.py --join --name <name> --game_id <game_id>`
+- Observe a game with `python client.py --observe --game_id <game_id>`

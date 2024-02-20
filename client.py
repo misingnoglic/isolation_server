@@ -150,24 +150,47 @@ def join_game(game_id, my_name):
     play_until_game_is_over(game_id, my_name, my_secret, agent)
 
 
+def observe_game(game_id):
+    prev_game_status = None
+    prev_current_queen = None
+    while True:
+        game_status_request = requests.get(GAME_STATUS % game_id)
+        game_status = game_status_request.json()
+        if game_status != prev_game_status or game_status['current_queen'] != prev_current_queen:
+            current_status = game_status['game_status']
+            print(f'Game status: {current_status}')
+            print(f'Current queen: {game_status["current_queen"]}')
+            print(f'Last move: {game_status["last_move"]}')
+            board_state = game_status['game_state']
+            game = Board.from_json(board_state)
+            print(game.print_board())
+            prev_game_status = game_status
+            prev_current_queen = game_status['current_queen']
+
+            if current_status == constants.GameStatus.FINISHED:
+                break
+
+
 @click.command()
 # Can either host or join a game
 @click.option('--host', is_flag=True, help='Host a new game')
 @click.option('--join', is_flag=True, help='Join an existing game')
+@click.option('--observe', is_flag=True, help='Observe an existing game')
 @click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
 @click.option('--name', help='Your name')
 @click.option('--time_limit', help='Time limit for each move')
-def main(host, join, test, game_id, name, time_limit):
+def main(host, join, observe, test, game_id, name, time_limit):
     if host:
         host_game(name, time_limit)
     elif join:
         join_game(game_id, name)
     elif test:
         test_run()
+    elif observe:
+        observe_game(game_id)
     else:
-        # print help text
-        print('Please specify --host or --join')
+        print('Invalid arguments. Use --help for help')
 
 
 if __name__ == '__main__':
