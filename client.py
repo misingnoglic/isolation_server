@@ -7,6 +7,7 @@ import json
 import time
 import click
 
+# Set to the public URL
 URL = 'http://127.0.0.1:5000'
 NEW_GAME = URL + '/game/new'
 GAME_STATUS = URL + '/game/%s'
@@ -138,7 +139,8 @@ def join_game(game_id, my_name):
         return
     print(join_game.json())
     my_secret = join_game.json()['player_secret']
-    agent = PLAYER_CLASS(my_name)
+    agent = PLAYER_CLASS()
+    agent.name = my_name
     print('successfully joined game')
     play_until_game_is_over(game_id, my_name, my_secret, agent)
 
@@ -147,14 +149,17 @@ def join_game(game_id, my_name):
 # Can either host or join a game
 @click.option('--host', is_flag=True, help='Host a new game')
 @click.option('--join', is_flag=True, help='Join an existing game')
+@click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
 @click.option('--name', help='Your name')
 @click.option('--time_limit', help='Time limit for each move')
-def main(host, join, game_id, name, time_limit):
+def main(host, join, test, game_id, name, time_limit):
     if host:
         host_game(name, time_limit)
     elif join:
         join_game(game_id, name)
+    elif test:
+        test_run()
     else:
         # print help text
         print('Please specify --host or --join')
