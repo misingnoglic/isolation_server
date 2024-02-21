@@ -28,8 +28,7 @@ def test_run():
     player_1_secret = ''
     player_2_secret = ''
 
-
-    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE', 'num_random_turns': 0})
+    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE', 'num_random_turns': 1, 'webhook': ''})
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -82,7 +81,7 @@ def test_run():
 
 
 def host_game(my_name, time_limit, start_board, num_random_turns, webhook):
-    new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE', 'start_board': start_board, 'num_random_turns': num_random_turns, 'webhook': webhook or ''})
+    new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'webhook': webhook or ''})
     if not new_game.ok:
         print('Error', new_game.json())
         return

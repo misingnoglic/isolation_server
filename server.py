@@ -11,8 +11,6 @@ from discord_webhook import DiscordWebhook, DiscordEmbed
 
 app = flask.Flask(__name__)
 
-# enum for game states
-
 
 @app.route('/game/new', methods=['POST'])
 def host_game():
@@ -36,6 +34,42 @@ def host_game():
     conn.commit()
     conn.close()
     return flask.jsonify({'game_id': game_id, 'player_secret': player_secret})
+
+
+def announce_game_start(player1, player2, webhook):
+    if not webhook:
+        return
+    webhook = DiscordWebhook(url=webhook)
+    embed = DiscordEmbed(title="NEW GAME!", description=f'{player1} vs {player2}')
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
+def announce_game_move(board, cur_game, player_name, move):
+    if not cur_game['webhook']:
+        return
+    formatted_board = emojify_board(board.print_board())
+    webhook = DiscordWebhook(url=cur_game['webhook'])
+    if cur_game['player1'] == player_name:
+        player_icon = "🟥"
+        color = "c41e3a"
+    else:
+        player_icon = "🟦"
+        color = "1e5ac4"
+    embed = DiscordEmbed(title=f'{cur_game["player1"]} vs {cur_game["player2"]} - Move #{board.move_count}', description=formatted_board, color=color)
+    embed.set_footer(text=f'{player_icon} {board.get_inactive_player()} moved to {str(move[0])}, {str(move[1])}')
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
+def announce_game_over(webhook, winner):
+    if not webhook:
+        return
+    webhook = DiscordWebhook(url=webhook)
+    embed = DiscordEmbed(title="GAME OVER!", description=f'{winner} wins!')
+    webhook.add_embed(embed)
+    webhook.execute()
+
 
 @app.route('/game/<game_id>/join', methods=['POST'])
 def join_game(game_id):
@@ -76,6 +110,7 @@ def join_game(game_id):
     for _ in range(num_random_turns):
         last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
         last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(second_player)))
+    last_move = json.dumps(last_move)
     new_game_json = new_game.to_json()
     c.execute(
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, last_move = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
@@ -84,11 +119,7 @@ def join_game(game_id):
 
     conn.commit()
     conn.close()
-    if cur_game['webhook']:
-        webhook = DiscordWebhook(url=cur_game['webhook'])
-        embed = DiscordEmbed(title="NEW GAME!!!", description=cur_game['player1'] + " vs " + request.form['player_name'])
-        webhook.add_embed(embed)
-        response = webhook.execute()
+    announce_game_start(host_player, player_name, cur_game['webhook'])
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
 
 
@@ -122,8 +153,12 @@ def get_game_status(game_id):
         conn = sqlite3.connect('sql/isolation.db')
         c = conn.cursor()
         c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], game_id))
+        # get webhook
+        c.execute("SELECT webhook, winner FROM isolationgame WHERE uuid = ?", (game_id,))
+        webhook, winner = c.fetchone()
         conn.commit()
         conn.close()
+        announce_game_over(webhook, winner)
         return flask.jsonify(_get_game_status(game_id))
     return flask.jsonify(game_status)
 
@@ -201,27 +236,10 @@ def make_move(game_id):
     new_game_state = board.to_json()
     new_game_status = constants.GameStatus.FINISHED if game_over else constants.GameStatus.IN_PROGRESS
 
-    # Send to webhook
-    if cur_game['webhook']:
-        formatted_board = emojify_board(board.print_board())
-        webhook = DiscordWebhook(url=cur_game['webhook'])
-        if cur_game['player1'] == player_name:
-            pstring = "🟥 "
-            color = "c41e3a"
-        else:
-            pstring = "🟦 "
-            color = "1e5ac4"
-        embed = DiscordEmbed(title=cur_game['player1'] + " vs " + cur_game['player2'] +" - Move #"+str(board.move_count), description=formatted_board, color=color)
-        embed.set_footer(text=pstring + board.get_inactive_player() + " moved to " + str(move[0]) + ", "+str(move[1]))
-        webhook.add_embed(embed)
-        response = webhook.execute()
+    announce_game_move(board, cur_game, player_name, move)
 
     if new_game_status == constants.GameStatus.FINISHED:
-        if cur_game['webhook']:
-            webhook = DiscordWebhook(url=cur_game['webhook'])
-            embed = DiscordEmbed(title="GAME OVER!!!", description=winner + " wins!!")
-            webhook.add_embed(embed)
-            response = webhook.execute()
+        announce_game_over(cur_game['webhook'], winner)
 
     # Update the game state
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
@@ -243,6 +261,7 @@ def setup_db_first_time():
 def emojify_board(board):
     return board.replace('  ', "⬜").replace("><","⬛").replace("Q1","🟥").replace("Q2","🟦").replace('\n\r','\n').replace("|","").replace("0","0️⃣").replace("1","1️⃣").replace("2","2️⃣").replace("3","3️⃣").replace("4","4️⃣").replace("5","5️⃣").replace("6","6️⃣").replace("7","7️⃣").replace("8","8️⃣").replace("9","9️⃣").replace(" ","")
 
+
 if __name__ == '__main__':
     setup_db_first_time()
-    app.run()
+    app.run('0.0.0.0', 5000)
