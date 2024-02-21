@@ -178,7 +178,7 @@ def observe_game(game_id):
 @click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
 @click.option('--start_board', help='Start board (DEFAULT or CASTLE)', default='CASTLE')
-@click.option('--num_random_turns', help='Number of random turns to make at the start', default=0)
+@click.option('--num_random_turns', help='Number of random turns to make at the start', default=0, type=int)
 @click.option('--name', help='Your name')
 @click.option('--time_limit', default=None, help='Time limit for each move')
 @click.option('--webhook', help='Discord webhook url')

@@ -5,13 +5,7 @@ As part of this course, we built an AI to play Isolation. However, we are not al
 so there was no way to play against each other. This project is a simple flask server that will facilitate clients
 creating games and sending moves to each other without exposing their inner logic.
 
-# Server Setup
-
-- Install requirements with `pip install -r requirements_server.txt`
-- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
-- Run the server with `python server.py` (this just runs a local flask app, you will have to host it yourself and provide a public domain)
-
-# Client Setup
+# Client Setup - Needed to create and join games
 
 - Install requirements with `pip install -r requirements_client.txt`
 - Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
@@ -26,3 +20,10 @@ creating games and sending moves to each other without exposing their inner logi
     - `--webhook <webhook>`: A discord webhook URL to send game updates to
 - Join a game with `python client.py --join --name <name> --game_id <game_id>`
 - Observe a game with `python client.py --observe --game_id <game_id>`
+
+
+# Server Setup - Only needed if you are the one who wants to host the server
+
+- Install requirements with `pip install -r requirements_server.txt`
+- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
+- Run the server with `python server.py` (this just runs a local flask app, you will have to host it yourself and provide a public domain)

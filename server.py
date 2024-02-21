@@ -259,6 +259,13 @@ def setup_db_first_time():
     conn.commit()
     conn.close()
 
+
+@app.route('/')
+def index():
+    # TODO: Maybe allow a web interface to observe games?
+    return flask.jsonify({'status': 'ok', 'hello': 'world'})
+
+
 def emojify_board(board):
     return board.replace('  ', "⬜").replace("><","⬛").replace("Q1","🟥").replace("Q2","🟦").replace('\n\r','\n').replace("|","").replace("0","0️⃣").replace("1","1️⃣").replace("2","2️⃣").replace("3","3️⃣").replace("4","4️⃣").replace("5","5️⃣").replace("6","6️⃣").replace("7","7️⃣").replace("8","8️⃣").replace("9","9️⃣").replace(" ","")
 
