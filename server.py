@@ -31,7 +31,7 @@ def host_game():
     c = conn.cursor()
     c.execute(
         "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, webhook) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], request.form['webhook']))
+        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], request.form.get('webhook')))
     conn.commit()
     conn.close()
     return flask.jsonify({'game_id': game_id, 'player_secret': player_secret})
@@ -74,13 +74,14 @@ def join_game(game_id):
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
         (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
     )
+    
+    conn.commit()
+    conn.close()
     if cur_game['webhook']:
         webhook = DiscordWebhook(url=cur_game['webhook'])
         embed = DiscordEmbed(title="NEW GAME!!!", description=cur_game['player1'] + " vs " + request.form['player_name'])
         webhook.add_embed(embed)
         response = webhook.execute()
-    conn.commit()
-    conn.close()
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
 
 
@@ -196,16 +197,17 @@ def make_move(game_id):
 
     # Send to webhook
     if cur_game['webhook']:
-        formatted_board = board.print_board().replace('  ', "⬜").replace("><","⬛").replace("Q1","🟥").replace("Q2","🟦").replace('\n\r','\n').replace("|","").replace("0","0️⃣").replace("1","1️⃣").replace("2","2️⃣").replace("3","3️⃣").replace("4","4️⃣").replace("5","5️⃣").replace("6","6️⃣").replace("7","7️⃣").replace("8","8️⃣").replace("9","9️⃣").replace(" ","")
+        formatted_board = emojify_board(board.print_board())
         webhook = DiscordWebhook(url=cur_game['webhook'])
         embed = DiscordEmbed(title=cur_game['player1'] + " vs " + cur_game['player2'], description=formatted_board)
+        embed.set_footer(text=str(move[0]) + ", "+str(move[1]))
         webhook.add_embed(embed)
         response = webhook.execute()
 
     if new_game_status == constants.GameStatus.FINISHED:
         if cur_game['webhook']:
             webhook = DiscordWebhook(url=cur_game['webhook'])
-            embed = DiscordEmbed(title="GAME OVER!!!", description=winner + "wins!!")
+            embed = DiscordEmbed(title="GAME OVER!!!", description=winner + " wins!!")
             webhook.add_embed(embed)
             response = webhook.execute()
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
@@ -224,6 +226,8 @@ def setup_db_first_time():
     conn.commit()
     conn.close()
 
+def emojify_board(board):
+    return board.replace('  ', "⬜").replace("><","⬛").replace("Q1","🟥").replace("Q2","🟦").replace('\n\r','\n').replace("|","").replace("0","0️⃣").replace("1","1️⃣").replace("2","2️⃣").replace("3","3️⃣").replace("4","4️⃣").replace("5","5️⃣").replace("6","6️⃣").replace("7","7️⃣").replace("8","8️⃣").replace("9","9️⃣").replace(" ","")
 
 if __name__ == '__main__':
     setup_db_first_time()
