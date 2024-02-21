@@ -199,8 +199,14 @@ def make_move(game_id):
     if cur_game['webhook']:
         formatted_board = emojify_board(board.print_board())
         webhook = DiscordWebhook(url=cur_game['webhook'])
-        embed = DiscordEmbed(title=cur_game['player1'] + " vs " + cur_game['player2'], description=formatted_board)
-        embed.set_footer(text=str(move[0]) + ", "+str(move[1]))
+        if "Q1" in board.get_inactive_player():
+            pstring = "🟥 "
+            color = "c41e3a"
+        else:
+            pstring = "🟦 "
+            color = "1e5ac4"
+        embed = DiscordEmbed(title=cur_game['player1'] + " vs " + cur_game['player2'] +" - Move #"+str(board.move_count), description=formatted_board, color=color)
+        embed.set_footer(text=pstring + board.get_inactive_player() + " moved to " + str(move[0]) + ", "+str(move[1]))
         webhook.add_embed(embed)
         response = webhook.execute()
 

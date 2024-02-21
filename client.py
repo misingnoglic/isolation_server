@@ -81,8 +81,11 @@ def test_run():
         time.sleep(PING_INTERVAL)
 
 
-def host_game(my_name, time_limit):
-    new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE'})
+def host_game(my_name, time_limit,webhook):
+    if webhook is None:
+        new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE'})
+    else:
+        new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE', 'webhook': webhook})
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -179,10 +182,11 @@ def observe_game(game_id):
 @click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
 @click.option('--name', help='Your name')
-@click.option('--time_limit', help='Time limit for each move')
-def main(host, join, observe, test, game_id, name, time_limit):
+@click.option('--time_limit', default=None, help='Time limit for each move')
+@click.option('--webhook', help='Discord webhook url')
+def main(host, join, observe, test, game_id, name, time_limit, webhook):
     if host:
-        host_game(name, time_limit)
+        host_game(name, time_limit, webhook)
     elif join:
         join_game(game_id, name)
     elif test:
