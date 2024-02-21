@@ -138,6 +138,7 @@ def join_game(game_id):
     # Need to add thread ID to DB, that's why we're calling it before.
     if cur_game['discord']:
         thread_id = start_game_thread(host_player, player_name, game_id)
+        announce_game_start_in_main_channel(host_player, player_name, thread_id)
     c.execute(
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?, current_queen = ?, last_move = ?, thread_id = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
         (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, last_move, thread_id, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
@@ -145,8 +146,6 @@ def join_game(game_id):
 
     conn.commit()
     conn.close()
-    if cur_game['discord'] and cur_game['thread_id']:
-        announce_game_start_in_main_channel(host_player, player_name, thread_id)
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
 
 
@@ -244,12 +243,12 @@ def make_move(game_id):
             return flask.jsonify({'status': 'error', 'message': 'Invalid next player'}), 400
 
     # Check that the timestamp they sent is within 1 second of the server's time
-    if abs(client_time - time.time()) > 1:
+    if time.time() - client_time > 1:
         c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
         return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
-    # Check their timestamp is within the time limit
-    if client_time - cur_game['updated_at'] > cur_game['time_limit']:
+    # Check their timestamp is within the time limit (within some bounds)
+    if client_time - cur_game['updated_at'] > (1 + cur_game['time_limit']):
         # Set the game as finished
         c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
         return flask.jsonify({'status': 'error', 'message': 'You took too long!'}), 400
