@@ -10,3 +10,9 @@ CASTLE_BOARD = [[" "," "," "," "," "," "," "," "," "],
                 [" "," ","X","X"," ","X","X"," "," "],
                 [" "," "," "," "," "," "," "," "," "],
                 [" "," "," "," "," "," "," "," "," "]]
+
+
+class GameStatus:
+    NEED_SECOND_PLAYER = 'need_second_player'
+    IN_PROGRESS = 'in_progress'
+    FINISHED = 'finished'

@@ -2,19 +2,25 @@ import requests
 from test_players import RandomPlayer
 # from submission import CustomPlayer
 import constants
+import client_config
 from server_isolation import Board
 import json
 import time
 import click
 
-URL = 'http://127.0.0.1:5000'
+# Set to the public URL
+URL = client_config.BASE_URL
+if URL[-1] == '/':
+    URL = URL[:-1]
 NEW_GAME = URL + '/game/new'
 GAME_STATUS = URL + '/game/%s'
 MAKE_MOVE = URL + '/game/%s/move'
 JOIN_GAME = URL + '/game/%s/join'
 
 # Set your player class here
-PLAYER_CLASS = RandomPlayer
+PLAYER_CLASS = client_config.PLAYER_CLASS
+
+PING_INTERVAL = 0.5
 
 def test_run():
     player_1_name = 'player1'
@@ -46,7 +52,7 @@ def test_run():
 
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
-        if game_status_request.json()['game_status'] not in ['in_progress']:
+        if game_status_request.json()['game_status'] != constants.GameStatus.IN_PROGRESS:
             print('game over')
             game = Board.from_json(game_status_request.json()['game_state'])
             print(game.print_board())
@@ -72,7 +78,7 @@ def test_run():
             MAKE_MOVE % game_id, data={
                 'player_name': player.get_name(), 'player_secret': player.secret, 'move': json.dumps(move), 'client_time': time.time()})
         print(make_move_request.json())
-        time.sleep(0.5)
+        time.sleep(PING_INTERVAL)
 
 
 def host_game(my_name, time_limit):
@@ -89,9 +95,9 @@ def host_game(my_name, time_limit):
 
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
-        if game_status_request.json()['game_status'] != 'need_second_player':
+        if game_status_request.json()['game_status'] != constants.GameStatus.NEED_SECOND_PLAYER:
             break
-        time.sleep(0.5)
+        time.sleep(PING_INTERVAL)
 
     print('game started')
     play_until_game_is_over(game_id, my_name, my_secret, agent)
@@ -100,7 +106,7 @@ def host_game(my_name, time_limit):
 def play_until_game_is_over(game_id, my_name, my_secret, agent):
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
-        if game_status_request.json()['game_status'] != 'in_progress':
+        if game_status_request.json()['game_status'] != constants.GameStatus.IN_PROGRESS:
             print('Game finished - winner is', game_status_request.json()['winner'])
             print('Final board:')
             game = Board.from_json(game_status_request.json()['game_state'])
@@ -109,7 +115,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
 
         if game_status_request.json()['current_queen'] != my_name:
             # print('not my turn yet')
-            time.sleep(0.5)  # Let's wait for our turn
+            time.sleep(PING_INTERVAL)  # Let's wait for our turn
             continue
 
         print('Your turn')
@@ -127,7 +133,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         if not make_move_request.ok:
             print('Error', make_move_request.json())
             return
-        time.sleep(0.5)
+        time.sleep(PING_INTERVAL)
 
 
 def join_game(game_id, my_name):
@@ -138,26 +144,53 @@ def join_game(game_id, my_name):
         return
     print(join_game.json())
     my_secret = join_game.json()['player_secret']
-    agent = PLAYER_CLASS(my_name)
+    agent = PLAYER_CLASS()
+    agent.name = my_name
     print('successfully joined game')
     play_until_game_is_over(game_id, my_name, my_secret, agent)
+
+
+def observe_game(game_id):
+    prev_game_status = None
+    prev_current_queen = None
+    while True:
+        game_status_request = requests.get(GAME_STATUS % game_id)
+        game_status = game_status_request.json()
+        if game_status != prev_game_status or game_status['current_queen'] != prev_current_queen:
+            current_status = game_status['game_status']
+            print(f'Game status: {current_status}')
+            print(f'Current queen: {game_status["current_queen"]}')
+            print(f'Last move: {game_status["last_move"]}')
+            board_state = game_status['game_state']
+            game = Board.from_json(board_state)
+            print(game.print_board())
+            prev_game_status = game_status
+            prev_current_queen = game_status['current_queen']
+
+            if current_status == constants.GameStatus.FINISHED:
+                break
 
 
 @click.command()
 # Can either host or join a game
 @click.option('--host', is_flag=True, help='Host a new game')
 @click.option('--join', is_flag=True, help='Join an existing game')
+@click.option('--observe', is_flag=True, help='Observe an existing game')
+@click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
 @click.option('--name', help='Your name')
 @click.option('--time_limit', help='Time limit for each move')
-def main(host, join, game_id, name, time_limit):
+def main(host, join, observe, test, game_id, name, time_limit):
     if host:
         host_game(name, time_limit)
     elif join:
         join_game(game_id, name)
+    elif test:
+        test_run()
+    elif observe:
+        observe_game(game_id)
     else:
-        # print help text
-        print('Please specify --host or --join')
+        print('Invalid arguments. Use --help for help')
 
 
 if __name__ == '__main__':
