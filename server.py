@@ -199,7 +199,7 @@ def make_move(game_id):
     if cur_game['webhook']:
         formatted_board = emojify_board(board.print_board())
         webhook = DiscordWebhook(url=cur_game['webhook'])
-        if "Q1" in board.get_inactive_player():
+        if cur_game['player1'] == player_name:
             pstring = "🟥 "
             color = "c41e3a"
         else:
