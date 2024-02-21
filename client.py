@@ -29,7 +29,7 @@ def test_run():
     player_2_secret = ''
 
 
-    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE'})
+    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE', 'num_random_turns': 1})
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -81,11 +81,8 @@ def test_run():
         time.sleep(PING_INTERVAL)
 
 
-def host_game(my_name, time_limit,webhook):
-    if webhook is None:
-        new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE'})
-    else:
-        new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE', 'webhook': webhook})
+def host_game(my_name, time_limit, start_board, num_random_turns, webhook):
+    new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': 'CASTLE', 'start_board': start_board, 'num_random_turns': num_random_turns, 'webhook': webhook or ''})
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -181,12 +178,14 @@ def observe_game(game_id):
 @click.option('--observe', is_flag=True, help='Observe an existing game')
 @click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
+@click.option('--start_board', help='Start board (DEFAULT or CASTLE)', default='CASTLE')
+@click.option('--num_random_turns', help='Number of random turns to make at the start', default=0)
 @click.option('--name', help='Your name')
 @click.option('--time_limit', default=None, help='Time limit for each move')
 @click.option('--webhook', help='Discord webhook url')
-def main(host, join, observe, test, game_id, name, time_limit, webhook):
+def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, webhook):
     if host:
-        host_game(name, time_limit, webhook)
+        host_game(name, time_limit, start_board, num_random_turns, webhook)
     elif join:
         join_game(game_id, name)
     elif test:

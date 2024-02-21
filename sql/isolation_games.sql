@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS isolationgame (
     winner VARCHAR(100) DEFAULT '',
     time_limit INT NOT NULL,
     epoch_time_limit_next_move FLOAT DEFAULT 0,
+    num_random_turns INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at FLOAT,
     webhook VARCHAR(200) DEFAULT ''

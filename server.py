@@ -26,12 +26,13 @@ def host_game():
     game_id = str(uuid.uuid4())
     player_secret = str(uuid.uuid4())
     start_board = request.form['start_board']
+    num_random_turns = request.form.get('num_random_turns', 0)
     # Store this game ID in the db
     conn = sqlite3.connect('sql/isolation.db')
     c = conn.cursor()
     c.execute(
-        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, webhook) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], request.form.get('webhook')))
+        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, num_random_turns, webhook) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], num_random_turns, request.form.get('webhook', '')))
     conn.commit()
     conn.close()
     return flask.jsonify({'game_id': game_id, 'player_secret': player_secret})
@@ -58,6 +59,7 @@ def join_game(game_id):
         return flask.jsonify({'status': 'error', 'message': 'You cannot join your own game'}), 400
 
     first_player = random.choice([player_name, host_player])
+    second_player = host_player if first_player == player_name else player_name
     board = cur_game['start_board']
     if board == "DEFAULT":
         board = constants.DEFAULT_BOARD
@@ -68,13 +70,18 @@ def join_game(game_id):
 
 
     new_game = Board(host_player, player_name, board, first_player == host_player)
+
+    num_random_turns = cur_game['num_random_turns']
+    for _ in range(num_random_turns):
+        new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
+        new_game.__apply_move__(random.choice(new_game.get_player_moves(second_player)))
     new_game_json = new_game.to_json()
 
     c.execute(
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
         (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
     )
-    
+
     conn.commit()
     conn.close()
     if cur_game['webhook']:
