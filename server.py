@@ -76,7 +76,7 @@ def join_game(game_id):
     )
     if cur_game['webhook']:
         webhook = DiscordWebhook(url=cur_game['webhook'])
-        embed = DiscordEmbed(title="NEW GAME!!!", description=cur_game['player1'] + " vs " + cur_game['player2'])
+        embed = DiscordEmbed(title="NEW GAME!!!", description=cur_game['player1'] + " vs " + request.form['player_name'])
         webhook.add_embed(embed)
         response = webhook.execute()
     conn.commit()
