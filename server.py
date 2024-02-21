@@ -19,6 +19,7 @@ def host_game():
     - player_name: the name of the player
     - time_limit: the time limit for the game
     - start_board: JSON string of default board for the game (if None, will be the standard board. If "CASTLE" will be the castle board)
+    - num_random_turns: number of random turns to make at the start
     - webhook: Discord webhook url to send move updates to
     """
     game_id = str(uuid.uuid4())
