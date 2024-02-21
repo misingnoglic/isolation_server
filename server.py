@@ -83,7 +83,11 @@ def join_game(game_id):
         "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
         (request.form['player_name'], player_secret, GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, GameStatus.NEED_SECOND_PLAYER)
     )
-
+    if cur_game['webhook']:
+        webhook = DiscordWebhook(url=cur_game['webhook'])
+        embed = DiscordEmbed(title="NEW GAME!!!", description=cur_game['player1'] + " vs " + cur_game['player2'])
+        webhook.add_embed(embed)
+        response = webhook.execute()
     conn.commit()
     conn.close()
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
@@ -207,6 +211,12 @@ def make_move(game_id):
         webhook.add_embed(embed)
         response = webhook.execute()
 
+    if new_game_status == GameStatus.FINISHED:
+        if cur_game['webhook']:
+            webhook = DiscordWebhook(url=cur_game['webhook'])
+            embed = DiscordEmbed(title="GAME OVER!!!", description=winner + "wins!!")
+            webhook.add_embed(embed)
+            response = webhook.execute()
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
     conn.commit()
     conn.close()
