@@ -8,13 +8,21 @@ creating games and sending moves to each other without exposing their inner logi
 # Server Setup
 
 - Install requirements with `pip install -r requirements_server.txt`
+- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
 - Run the server with `python server.py` (this just runs a local flask app, you will have to host it yourself and provide a public domain)
 
 # Client Setup
 
 - Install requirements with `pip install -r requirements_client.txt`
+- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
 - Modify variables in client_config.py
+ - Get the server URL from whoever is hosting the server.
+ - Import your bot from the assignment.
 - Host a game with `python client.py --host --name <name> --time_limit <time_limit>`
   - This will give you an ID you can send to someone to join
+  - Some other options:
+    - `--num_random_moves <num_random_moves>`: The number of random moves to make at the start of the game
+    - `--start_board <start_board>`: The board to start the game with. Can be "DEFAULT", "CASTLE", or a JSON string of an NxM array of spaces and X's
+    - `--webhook <webhook>`: A discord webhook URL to send game updates to
 - Join a game with `python client.py --join --name <name> --game_id <game_id>`
 - Observe a game with `python client.py --observe --game_id <game_id>`
