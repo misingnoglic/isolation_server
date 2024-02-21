@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS isolationgame (
     time_limit INT NOT NULL,
     epoch_time_limit_next_move FLOAT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at FLOAT
+    updated_at FLOAT,
+    webhook VARCHAR(100) DEFAULT ''
 );

@@ -7,7 +7,7 @@ import json
 from server_isolation import Board
 import time
 import constants
-
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 app = flask.Flask(__name__)
 
@@ -30,6 +30,7 @@ def host_game():
     - player_name: the name of the player
     - time_limit: the time limit for the game
     - start_board: JSON string of default board for the game (if None, will be the standard board. If "CASTLE" will be the castle board)
+    - webhook url: Discord webhook to send move updates to
     """
     game_id = str(uuid.uuid4())
     player_secret = str(uuid.uuid4())
@@ -38,8 +39,8 @@ def host_game():
     conn = sqlite3.connect('sql/isolation.db')
     c = conn.cursor()
     c.execute(
-        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit) VALUES (?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, GameStatus.NEED_SECOND_PLAYER, request.form['time_limit']))
+        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, webhook) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (game_id, request.form['player_name'], player_secret, start_board, GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], request.form['webhook']))
     conn.commit()
     conn.close()
     return flask.jsonify({'game_id': game_id, 'player_secret': player_secret})
@@ -197,6 +198,15 @@ def make_move(game_id):
     new_game_state = board.to_json()
     new_game_status = GameStatus.FINISHED if game_over else GameStatus.IN_PROGRESS
     # Update the game state
+
+    # Send to webhook
+    if cur_game['webhook']:
+        formatted_board = board.print_board().replace('  ', "⬜").replace("><","⬛").replace("Q1","🟥").replace("Q2","🟦").replace('\n\r','\n').replace("|","").replace("0","0️⃣").replace("1","1️⃣").replace("2","2️⃣").replace("3","3️⃣").replace("4","4️⃣").replace("5","5️⃣").replace("6","6️⃣").replace("7","7️⃣").replace("8","8️⃣").replace("9","9️⃣").replace(" ","")
+        webhook = DiscordWebhook(url=cur_game['webhook'])
+        embed = DiscordEmbed(title=cur_game['player1'] + " vs " + cur_game['player2'], description=formatted_board)
+        webhook.add_embed(embed)
+        response = webhook.execute()
+
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
     conn.commit()
     conn.close()
