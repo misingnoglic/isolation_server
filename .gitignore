@@ -3,3 +3,4 @@ server_isolation.py
 sql/isolation.db
 .idea
 submission.py
+server_secrets.py

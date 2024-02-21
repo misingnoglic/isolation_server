@@ -25,5 +25,6 @@ creating games and sending moves to each other without exposing their inner logi
 # Server Setup - Only needed if you are the one who wants to host the server
 
 - Install requirements with `pip install -r requirements_server.txt`
+- Get the `server_secrets.py` from someone.
 - Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
 - Run the server with `python server.py` (this just runs a local flask app, you will have to host it yourself and provide a public domain)

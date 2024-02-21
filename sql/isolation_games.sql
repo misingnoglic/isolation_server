@@ -18,5 +18,6 @@ CREATE TABLE IF NOT EXISTS isolationgame (
     num_random_turns INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at FLOAT,
-    webhook VARCHAR(200) DEFAULT ''
+    thread_id VARCHAR(100) DEFAULT '',
+    discord BOOLEAN DEFAULT TRUE
 );
