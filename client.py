@@ -29,7 +29,7 @@ def test_run():
     player_2_secret = ''
 
 
-    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE', 'num_random_turns': 1})
+    new_game = requests.post(NEW_GAME, data={'player_name': player_1_name, 'time_limit': 10, 'start_board': 'CASTLE', 'num_random_turns': 0})
     if not new_game.ok:
         print('Error', new_game.json())
         return

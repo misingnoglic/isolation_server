@@ -72,14 +72,14 @@ def join_game(game_id):
     new_game = Board(host_player, player_name, board, first_player == host_player)
 
     num_random_turns = cur_game['num_random_turns']
+    last_move = ''
     for _ in range(num_random_turns):
-        new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
-        new_game.__apply_move__(random.choice(new_game.get_player_moves(second_player)))
+        last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
+        last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(second_player)))
     new_game_json = new_game.to_json()
-
     c.execute(
-        "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
-        (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
+        "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?,  current_queen = ?, last_move = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
+        (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, last_move, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
     )
 
     conn.commit()
@@ -200,7 +200,6 @@ def make_move(game_id):
     game_over, winner = board.__apply_move__(move)
     new_game_state = board.to_json()
     new_game_status = constants.GameStatus.FINISHED if game_over else constants.GameStatus.IN_PROGRESS
-    # Update the game state
 
     # Send to webhook
     if cur_game['webhook']:
@@ -223,6 +222,8 @@ def make_move(game_id):
             embed = DiscordEmbed(title="GAME OVER!!!", description=winner + " wins!!")
             webhook.add_embed(embed)
             response = webhook.execute()
+
+    # Update the game state
     c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
     conn.commit()
     conn.close()
