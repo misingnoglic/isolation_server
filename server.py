@@ -243,9 +243,10 @@ def make_move(game_id):
             return flask.jsonify({'status': 'error', 'message': 'Invalid next player'}), 400
 
     # Check that the timestamp they sent is within 1 second of the server's time
-    if time.time() - client_time > 1:
-        c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
-        return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
+    # This is causing issues, so I am ignoring it for now
+    # if time.time() - client_time > 1:
+    #     c.execute("UPDATE isolationgame SET game_status = ?, winner = ? WHERE uuid = ?", (constants.GameStatus.FINISHED, other_player, game_id))
+    #     return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
     # Check their timestamp is within the time limit (within some bounds)
     if client_time - cur_game['updated_at'] > (1 + cur_game['time_limit']):

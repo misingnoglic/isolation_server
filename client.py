@@ -105,6 +105,9 @@ def host_game(my_name, time_limit, start_board, num_random_turns, webhook):
 def play_until_game_is_over(game_id, my_name, my_secret, agent):
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
+        if not game_status_request.ok:
+            print('Error', game_status_request)
+            return
         if game_status_request.json()['game_status'] != constants.GameStatus.IN_PROGRESS:
             print('Game finished - winner is', game_status_request.json()['winner'])
             print('Final board:')
