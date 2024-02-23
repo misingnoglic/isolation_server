@@ -80,8 +80,9 @@ def test_run():
         time.sleep(PING_INTERVAL)
 
 
-def host_game(my_name, time_limit, start_board, num_random_turns, webhook):
-    new_game = requests.post(NEW_GAME, data={'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'webhook': webhook or ''})
+def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret):
+    payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret}
+    new_game = requests.post(NEW_GAME, data=payload)
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -184,10 +185,11 @@ def observe_game(game_id):
 @click.option('--num_random_turns', help='Number of random turns to make at the start', default=0, type=int)
 @click.option('--name', help='Your name')
 @click.option('--time_limit', default=None, help='Time limit for each move')
-@click.option('--webhook', help='Discord webhook url')
-def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, webhook):
+@click.option('--discord/--no_discord', help='Whether to replay on class Discord server', default=True, is_flag=True)
+@click.option('--secret', help='Whether to announce the game to class Discord server', is_flag=True)
+def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, discord, secret):
     if host:
-        host_game(name, time_limit, start_board, num_random_turns, webhook)
+        host_game(name, time_limit, start_board, num_random_turns, discord, secret)
     elif join:
         join_game(game_id, name)
     elif test:

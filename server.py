@@ -28,8 +28,8 @@ def host_game():
     player_secret = str(uuid.uuid4())
     start_board = request.form['start_board']
     num_random_turns = request.form.get('num_random_turns', 0)
-    discord = request.form.get('discord', True)
-    secret = request.form.get('secret', False)  # Whether to announce the game in the main channel
+    discord = False if request.form.get('discord') == 'False' else True
+    secret = True if request.form.get('secret') == 'True' else False
     # Store this game ID in the db
     conn = sqlite3.connect('sql/isolation.db')
     c = conn.cursor()
