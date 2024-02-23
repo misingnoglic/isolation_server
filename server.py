@@ -224,16 +224,17 @@ def _end_game(game_id, winner, reason=''):
         player2_wins += 1
     else:
         raise ValueError(f'Unknown winner {winner}')
-    new_uuid = ''
-    if num_rounds > 1:
-        new_uuid = generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_wins)
+    new_game_uuid = ''
+    num_rounds -= 1
+    if num_rounds > 0 and abs(player1_wins - player2_wins) <= num_rounds:
+        new_game_uuid = generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_wins)
 
-    c.execute("UPDATE isolationgame SET game_status = ?, winner = ?, new_game_uuid = ?, player1_wins = ?, player2_wins=? WHERE uuid = ?", (constants.GameStatus.FINISHED, winner, new_uuid, player1_wins, player2_wins, game_id))
+    c.execute("UPDATE isolationgame SET game_status = ?, winner = ?, new_game_uuid = ?, player1_wins = ?, player2_wins=? WHERE uuid = ?", (constants.GameStatus.FINISHED, winner, new_game_uuid, player1_wins, player2_wins, game_id))
     conn.commit()
     conn.close()
     board = Board.from_json(game_state)
     if discord:
-        announce_game_over(thread_id, winner, board, num_rounds < 2, player1_wins, player2_wins, reason=reason)
+        announce_game_over(thread_id, winner, board, new_game_uuid == "", player1_wins, player2_wins, reason=reason)
     return flask.jsonify(
         _get_game_status(game_id)
     )
