@@ -28,7 +28,7 @@ def host_game():
     player_secret = str(uuid.uuid4())
     start_board = request.form['start_board']
     num_random_turns = 0  # TODO: This results in really buggy games, so I'm setting it to 0 for now
-    num_rounds = int(request.form.get('num_rounds', 0))
+    num_rounds = int(request.form.get('num_rounds', 1))
     discord = False if request.form.get('discord') == 'False' else True
     secret = True if request.form.get('secret') == 'True' else False
     # Store this game ID in the db
@@ -42,7 +42,7 @@ def host_game():
     if discord and not secret:
         webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
         start_board_str = start_board if len(start_board) < 20 else "CUSTOM"
-        rules = f'start_board = {start_board_str}, time limit = {request.form["time_limit"]}, num random turns = {num_random_turns}'
+        rules = f'start_board = {start_board_str}, time limit = {request.form["time_limit"]}, num rounds = {num_rounds}'
         embed = DiscordEmbed(title="New Game!", description=f'{request.form["player_name"]} is waiting for a player, join them with this game ID: {game_id}. Rules are: {rules}')
         webhook.add_embed(embed)
         webhook.execute()
