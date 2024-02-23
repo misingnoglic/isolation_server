@@ -19,5 +19,9 @@ CREATE TABLE IF NOT EXISTS isolationgame (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at FLOAT,
     thread_id VARCHAR(100) DEFAULT '',
-    discord BOOLEAN DEFAULT TRUE
+    discord BOOLEAN DEFAULT TRUE,
+    num_rounds int DEFAULT 1,
+    player1_wins int DEFAULT 0,
+    player2_wins int DEFAULT 0,
+    new_game_uuid VARCHAR(100) DEFAULT ''
 );

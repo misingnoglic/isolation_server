@@ -80,8 +80,8 @@ def test_run():
         time.sleep(PING_INTERVAL)
 
 
-def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret):
-    payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret}
+def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds):
+    payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret, 'num_rounds': num_rounds}
     new_game = requests.post(NEW_GAME, data=payload)
     if not new_game.ok:
         print('Error', new_game.json())
@@ -114,7 +114,13 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
             print('Final board:')
             game = Board.from_json(game_status_request.json()['game_state'])
             print(game.print_board())
-            break
+            print(game_status_request.json())
+            if game_status_request.json()['new_game_uuid']:
+                game_id = game_status_request.json()['new_game_uuid']
+                print('New game started', game_id)
+                continue
+            else:
+                break
 
         if game_status_request.json()['current_queen'] != my_name:
             # print('not my turn yet')
@@ -187,9 +193,10 @@ def observe_game(game_id):
 @click.option('--time_limit', default=None, help='Time limit for each move')
 @click.option('--discord/--no_discord', help='Whether to replay on class Discord server', default=True, is_flag=True)
 @click.option('--secret', help='Whether to announce the game to class Discord server', is_flag=True)
-def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, discord, secret):
+@click.option('--num_rounds', help='Number of rounds to play', default=1, type=int)
+def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, discord, secret, num_rounds):
     if host:
-        host_game(name, time_limit, start_board, num_random_turns, discord, secret)
+        host_game(name, time_limit, start_board, num_random_turns, discord, secret, num_rounds)
     elif join:
         join_game(game_id, name)
     elif test:
