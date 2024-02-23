@@ -306,7 +306,10 @@ def make_move(game_id):
     board = Board.from_json(cur_game['game_state'])
     # Check that the move is legal
     if move not in board.get_player_moves(player_name):
-        return _end_game(game_id, other_player, reason='Illegal Move')
+        return _end_game(
+            game_id, other_player,
+            reason=f'Illegal Move for {player_name} - {move}. Legal moves: {board.get_player_moves(player_name)}'
+        )
 
     game_over, winner = board.__apply_move__(move)
     new_game_state = board.to_json()
