@@ -181,9 +181,9 @@ def get_game_status(game_id):
     game_status = _get_game_status(game_id)
     if game_status is None:
         return flask.jsonify({'status': 'error', 'message': 'Game not found'}), 404
-    if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 5 < time.time():
+    if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < time.time():
         # Update status to finished and set the winner to the other player
-        _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason='Timeout')
+        _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason=f'Timeout, status checked and significant time after last move')
     return flask.jsonify(game_status)
 
 
@@ -300,7 +300,7 @@ def make_move(game_id):
     # Check their timestamp is within the time limit (within some bounds)
     if client_time - cur_game['updated_at'] > (1 + cur_game['time_limit']):
         # Set the game as finished
-        return _end_game(game_id, other_player, reason='You took too long')
+        return _end_game(game_id, other_player, reason=f'You took too long, client_time: {client_time}, last move at: {cur_game["updated_at"]}, time_limit: {cur_game["time_limit"]}')
 
     # Create the board based on the game state and make the move
     board = Board.from_json(cur_game['game_state'])
@@ -339,8 +339,16 @@ def setup_db_first_time():
 
 @app.route('/')
 def index():
-    # TODO: Maybe allow a web interface to observe games?
-    return flask.jsonify({'status': 'ok', 'hello': 'world'})
+    # Count number of games group by status
+    conn = sqlite3.connect('sql/isolation.db')
+    c = conn.cursor()
+    c.row_factory = sqlite3.Row
+    c.execute("SELECT game_status, COUNT(*) FROM isolationgame GROUP BY game_status")
+    game_counts = c.fetchall()
+    conn.close()
+    # convert to dict
+    game_counts = {row['game_status']: row['COUNT(*)'] for row in game_counts}
+    return flask.jsonify({'game_counts': game_counts, 'status': 'ok', 'hello': 'world'})
 
 
 def emojify_board(board):
