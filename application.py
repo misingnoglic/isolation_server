@@ -185,7 +185,9 @@ def _get_game_status(game_id):
             'last_move_time': cur_game['updated_at'],
             'last_move': cur_game['last_move'],
             'game_state': cur_game['game_state'],
-            'new_game_uuid': cur_game['new_game_uuid']
+            'new_game_uuid': cur_game['new_game_uuid'],
+            'created_at': cur_game['created_at'],
+            'updated_at': cur_game['updated_at'],
         }
 
 
