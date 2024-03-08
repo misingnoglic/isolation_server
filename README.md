@@ -8,9 +8,8 @@ creating games and sending moves to each other without exposing their inner logi
 # Client Setup - Needed to create and join games
 
 - Install requirements with `pip install -r requirements_client.txt`
-- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
 - Modify variables in client_config.py
- - Get the server URL from whoever is hosting the server.
+ - Modify the URL if you are hosting it somewhere else.
  - Import your bot from the assignment.
 - Host a game with `python client.py --host --name <name> --time_limit <time_limit>`
   - This will give you an ID you can send to someone to join
@@ -24,7 +23,6 @@ creating games and sending moves to each other without exposing their inner logi
 
 # Server Setup - Only needed if you are the one who wants to host the server
 
-- Install requirements with `pip install -r requirements_server.txt`
-- Get the `server_secrets.py` from someone.
-- Grab the `isolation_server.py` file from someone who has it (currently trying to get permission to host it)
-- Run the server with `python server.py` (this just runs a local flask app, you will have to host it yourself and provide a public domain)
+- Install requirements with `pip install -r requirements.txt`
+- Get the `server_secrets.py` variables from someone and set them in your OS variables
+- Run the server locally with `python application.py`, or host it wherever. 

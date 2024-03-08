@@ -34,6 +34,9 @@ def host_game():
     start_board = request.form['start_board']
     num_random_turns = 0  # TODO: This results in really buggy games, so I'm setting it to 0 for now
     num_rounds = int(request.form.get('num_rounds', 1))
+    time_limit = request.form['time_limit']
+    if 60 < int(time_limit) < 1:
+        return flask.jsonify({'status': 'error', 'message': f'Invalid time limit {time_limit}, must be between 1 and 60'}), 400
     discord = False if request.form.get('discord') == 'False' else True
     secret = True if request.form.get('secret') == 'True' else False
     # Store this game ID in the db
@@ -41,7 +44,7 @@ def host_game():
     c = conn.cursor()
     c.execute(
         "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, num_random_turns, discord, num_rounds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, request.form['time_limit'], num_random_turns, discord, num_rounds))
+        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, time_limit, num_random_turns, discord, num_rounds))
     conn.commit()
     conn.close()
     if discord and not secret:
@@ -57,6 +60,13 @@ def host_game():
 def announce_game_start_in_main_channel(player1, player2, thread_id):
     webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
     embed = DiscordEmbed(title="Game Started!", description=f'{player1} vs {player2} has started! Click [here](https://discord.com/channels/{server_secrets.DISCORD_CHANNEL_ID}/{thread_id}) to watch along!')
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
+def announce_game_start_timeout(game_id):
+    webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
+    embed = DiscordEmbed(title="Timeout", description=f'Nobody joined {game_id} in time! Please start a new game')
     webhook.add_embed(embed)
     webhook.execute()
 
@@ -189,6 +199,10 @@ def get_game_status(game_id):
     if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < time.time():
         # Update status to finished and set the winner to the other player
         _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason=f'Timeout, status checked and significant time after last move')
+    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and game_status['updated_at'] + 60 * 5 < time.time():
+        # Update status to finished and set the winner to the other player
+        announce_game_start_timeout(game_id)
+        _end_game(game_id, '', reason=f'No second player joined in time')
     return flask.jsonify(game_status)
 
 
