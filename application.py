@@ -14,6 +14,8 @@ except ImportError:
     import server_secrets
 
 application = flask.Flask(__name__)
+import logging
+log = logging.getLogger('werkzeug')
 
 
 @application.route('/game/new', methods=['POST'])
@@ -340,9 +342,7 @@ def setup_db_first_time():
     conn.close()
 
 
-@application.route('/')
-def index():
-    # Count number of games group by status
+def _get_game_counts():
     conn = sqlite3.connect('sql/isolation.db')
     c = conn.cursor()
     c.row_factory = sqlite3.Row
@@ -351,6 +351,20 @@ def index():
     conn.close()
     # convert to dict
     game_counts = {row['game_status']: row['COUNT(*)'] for row in game_counts}
+    return game_counts
+
+
+@application.route('/')
+def index():
+    # Count number of games group by status
+    try:
+        game_counts = _get_game_counts()
+    except sqlite3.OperationalError as e:
+        if 'no such table' in str(e):
+            setup_db_first_time()
+            game_counts = _get_game_counts()
+        else:
+            raise e
     return flask.jsonify({'game_counts': game_counts, 'status': 'ok', 'hello': 'world'})
 
 
