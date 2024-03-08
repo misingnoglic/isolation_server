@@ -1,9 +1,8 @@
 test_players.py
-server_isolation.py
 sql/isolation.db
 .idea
 submission.py
-server_secrets.py
+server_secrets_hardcoded.py
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

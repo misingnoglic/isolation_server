@@ -8,7 +8,10 @@ from server_isolation import Board
 import time
 import constants
 from discord_webhook import DiscordWebhook, DiscordEmbed
-import server_secrets
+try:
+    import server_secrets_hardcoded as server_secrets
+except ImportError:
+    import server_secrets
 
 application = flask.Flask(__name__)
 
