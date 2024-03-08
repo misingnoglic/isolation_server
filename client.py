@@ -95,6 +95,9 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
 
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
+        if not game_status_request.ok:
+            print('Error', game_status_request.text)
+            return
         if game_status_request.json()['game_status'] != constants.GameStatus.NEED_SECOND_PLAYER:
             break
         time.sleep(PING_INTERVAL)

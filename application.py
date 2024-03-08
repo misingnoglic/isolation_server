@@ -199,7 +199,7 @@ def get_game_status(game_id):
     if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < time.time():
         # Update status to finished and set the winner to the other player
         _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason=f'Timeout, status checked and significant time after last move')
-    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and game_status['updated_at'] + 60 * 5 < time.time():
+    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and game_status['created_at'] + 60 * 5 < time.time():
         # Update status to finished and set the winner to the other player
         announce_game_start_timeout(game_id)
         _end_game(game_id, '', reason=f'No second player joined in time')
