@@ -43,8 +43,8 @@ def host_game():
     conn = sqlite3.connect('sql/isolation.db')
     c = conn.cursor()
     c.execute(
-        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, num_random_turns, discord, num_rounds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, time_limit, num_random_turns, discord, num_rounds))
+        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, num_random_turns, discord, num_rounds, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, time_limit, num_random_turns, discord, num_rounds, time.time()))
     conn.commit()
     conn.close()
     if discord and not secret:
@@ -224,8 +224,8 @@ def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_w
     new_game = Board(cur_game['player1'], cur_game['player2'], board, first_player == cur_game['player1'])
     new_game_json = new_game.to_json()
 
-    c.execute('INSERT INTO isolationgame (uuid, player1, player1_secret, player2, player2_secret, start_board, game_state, game_status, time_limit, num_random_turns, discord, num_rounds, current_queen, last_move, thread_id, player1_wins, player2_wins, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              (new_uuid, cur_game['player1'], cur_game['player1_secret'], cur_game['player2'], cur_game['player2_secret'], cur_game['start_board'], new_game_json, constants.GameStatus.IN_PROGRESS, cur_game['time_limit'], cur_game['num_random_turns'], cur_game['discord'], cur_game['num_rounds']-1, first_player, '', cur_game['thread_id'], player1_wins, player2_wins, time.time()))
+    c.execute('INSERT INTO isolationgame (uuid, player1, player1_secret, player2, player2_secret, start_board, game_state, game_status, time_limit, num_random_turns, discord, num_rounds, current_queen, last_move, thread_id, player1_wins, player2_wins, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              (new_uuid, cur_game['player1'], cur_game['player1_secret'], cur_game['player2'], cur_game['player2_secret'], cur_game['start_board'], new_game_json, constants.GameStatus.IN_PROGRESS, cur_game['time_limit'], cur_game['num_random_turns'], cur_game['discord'], cur_game['num_rounds']-1, first_player, '', cur_game['thread_id'], player1_wins, player2_wins, time.time(), time.time()))
     conn.commit()
     return new_uuid
 

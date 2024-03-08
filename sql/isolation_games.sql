@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS isolationgame (
     time_limit INT NOT NULL,
     epoch_time_limit_next_move FLOAT DEFAULT 0,
     num_random_turns INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at FLOAT,
     updated_at FLOAT,
     thread_id VARCHAR(100) DEFAULT '',
     discord BOOLEAN DEFAULT TRUE,
