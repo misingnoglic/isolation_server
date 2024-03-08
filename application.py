@@ -10,10 +10,10 @@ import constants
 from discord_webhook import DiscordWebhook, DiscordEmbed
 import server_secrets
 
-app = flask.Flask(__name__)
+application = flask.Flask(__name__)
 
 
-@app.route('/game/new', methods=['POST'])
+@application.route('/game/new', methods=['POST'])
 def host_game():
     """Host a new game.
     POST variables:
@@ -96,7 +96,7 @@ def announce_game_over(thread_id, winner, board, last_round, player1_wins, playe
     webhook.execute()
 
 
-@app.route('/game/<game_id>/join', methods=['POST'])
+@application.route('/game/<game_id>/join', methods=['POST'])
 def join_game(game_id):
     """Join a game.
     POST variables:
@@ -174,7 +174,7 @@ def _get_game_status(game_id):
         }
 
 
-@app.route('/game/<game_id>', methods=['GET'])
+@application.route('/game/<game_id>', methods=['GET'])
 def get_game_status(game_id):
     """Get the state of a game.
     """
@@ -240,7 +240,7 @@ def _end_game(game_id, winner, reason=''):
     )
 
 
-@app.route('/game/<game_id>/move', methods=['POST'])
+@application.route('/game/<game_id>/move', methods=['POST'])
 def make_move(game_id):
     """
     Make a move in a game.
@@ -337,7 +337,7 @@ def setup_db_first_time():
     conn.close()
 
 
-@app.route('/')
+@application.route('/')
 def index():
     # Count number of games group by status
     conn = sqlite3.connect('sql/isolation.db')
@@ -357,4 +357,4 @@ def emojify_board(board):
 
 if __name__ == '__main__':
     setup_db_first_time()
-    app.run('0.0.0.0', 5000)
+    application.run()

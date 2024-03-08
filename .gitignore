@@ -4,3 +4,8 @@ sql/isolation.db
 .idea
 submission.py
 server_secrets.py
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
