@@ -237,8 +237,8 @@ def _end_game(game_id, winner, reason=''):
     c = conn.cursor()
     # c.row_factory = sqlite3.Row
     # Get game from DB
-    c.execute("SELECT discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins FROM isolationgame WHERE uuid = ?", (game_id,))
-    discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins = c.fetchone()
+    c.execute("SELECT game_status, discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins FROM isolationgame WHERE uuid = ?", (game_id,))
+    game_status, discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins = c.fetchone()
     if winner.split(" - ")[0] == player1:
         player1_wins += 1
     elif winner.split(" - ")[0] == player2:
@@ -254,7 +254,7 @@ def _end_game(game_id, winner, reason=''):
     conn.commit()
     conn.close()
     board = Board.from_json(game_state)
-    if discord:
+    if discord and thread_id and game_status != constants.GameStatus.NEED_SECOND_PLAYER:
         announce_game_over(thread_id, winner, board, new_game_uuid == "", player1_wins, player2_wins, reason=reason)
     return flask.jsonify(
         _get_game_status(game_id)
