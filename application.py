@@ -1,6 +1,5 @@
 import flask
 import uuid
-import sqlite3
 from flask import request
 import random
 import json
@@ -12,11 +11,21 @@ try:
     import server_secrets_hardcoded as server_secrets
 except ImportError:
     import server_secrets
+from sqlalchemy import create_engine, func
+from sqlalchemy.orm import sessionmaker
+from models.base import Base
+from models.isolation_game import IsolationGame
+import datetime
 
 application = flask.Flask(__name__)
-import logging
-log = logging.getLogger('werkzeug')
+application.config['SQLALCHEMY_DATABASE_URI'] = server_secrets.DB_URL
+application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+engine = create_engine(application.config['SQLALCHEMY_DATABASE_URI'])
+Base.metadata.bind = engine
+DBSession = sessionmaker(bind=engine)
 
+
+false_values = ['false', 'f', '0', 'no', 'n', '']
 
 @application.route('/game/new', methods=['POST'])
 def host_game():
@@ -29,7 +38,6 @@ def host_game():
     - discord: Whether to send updates to Discord
     - secret: Whether to announce game beforehand on Discord
     """
-    game_id = str(uuid.uuid4())
     player_secret = str(uuid.uuid4())
     start_board = request.form['start_board']
     num_random_turns = 0  # TODO: This results in really buggy games, so I'm setting it to 0 for now
@@ -37,16 +45,24 @@ def host_game():
     time_limit = request.form['time_limit']
     if 60 < int(time_limit) < 1:
         return flask.jsonify({'status': 'error', 'message': f'Invalid time limit {time_limit}, must be between 1 and 60'}), 400
-    discord = False if request.form.get('discord') == 'False' else True
+    discord = False if request.form.get('discord', '').lower() in false_values else True
     secret = True if request.form.get('secret') == 'True' else False
     # Store this game ID in the db
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO isolationgame (uuid, player1, player1_secret, start_board, game_status, time_limit, num_random_turns, discord, num_rounds, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (game_id, request.form['player_name'], player_secret, start_board, constants.GameStatus.NEED_SECOND_PLAYER, time_limit, num_random_turns, discord, num_rounds, time.time()))
-    conn.commit()
-    conn.close()
+    new_game = IsolationGame(
+        player1=request.form['player_name'],
+        player1_secret=player_secret,
+        start_board=start_board,
+        game_status=constants.GameStatus.NEED_SECOND_PLAYER,
+        time_limit=time_limit,
+        num_random_turns=num_random_turns,
+        discord=discord,
+        num_rounds=num_rounds
+    )
+    session = DBSession()
+    session.add(new_game)
+    session.commit()
+    game_id = new_game.uuid
+    session.close()
     if discord and not secret:
         webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
         start_board_str = start_board if len(start_board) < 20 else "CUSTOM"
@@ -78,17 +94,17 @@ def start_game_thread(player1, player2, game_id):
 
 
 def announce_game_move(board, cur_game, player_name, move):
-    if not cur_game['thread_id'] or not cur_game['discord']:
+    if not cur_game.thread_id or not cur_game.discord:
         return
     formatted_board = emojify_board(board.print_board())
-    webhook = DiscordWebhook(url=server_secrets.GAME_WEBHOOK_URL, thread_id=cur_game['thread_id'])
-    if cur_game['player1'] == player_name:
+    webhook = DiscordWebhook(url=server_secrets.GAME_WEBHOOK_URL, thread_id=cur_game.thread_id)
+    if cur_game.player1 == player_name:
         player_icon = "🟥"
         color = "c41e3a"
     else:
         player_icon = "🟦"
         color = "1e5ac4"
-    embed = DiscordEmbed(title=f'{cur_game["player1"]} vs {cur_game["player2"]} - Round {cur_game["player1_wins"] + cur_game["player2_wins"] + 1} - Move #{board.move_count}', description=formatted_board, color=color)
+    embed = DiscordEmbed(title=f'{cur_game.player1} vs {cur_game.player2} - Round {cur_game.player1_wins + cur_game.player2_wins + 1} - Move #{board.move_count}', description=formatted_board, color=color)
     embed.set_footer(text=f'{player_icon} {board.get_inactive_player()} moved to {str(move[0])}, {str(move[1])}')
     webhook.add_embed(embed)
     webhook.execute()
@@ -119,22 +135,19 @@ def join_game(game_id):
     """
     player_name = request.form['player_name']
     player_secret = str(uuid.uuid4())
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    c.row_factory = sqlite3.Row
-    # Make sure the game exists and is waiting for a player
-    c.execute("SELECT * FROM isolationgame WHERE uuid = ? AND game_status = ?", (game_id, constants.GameStatus.NEED_SECOND_PLAYER))
-    cur_game = c.fetchone()
+
+    session = DBSession()
+    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
     if cur_game is None:
         return flask.jsonify({'status': 'error', 'message': 'Game not found or not waiting for a player'}), 400
     # Get the cur_game's player
-    host_player = cur_game['player1']
+    host_player = cur_game.player1
     if host_player == player_name:
         return flask.jsonify({'status': 'error', 'message': 'You cannot join your own game'}), 400
 
     first_player = random.choice([player_name, host_player])
     second_player = host_player if first_player == player_name else player_name
-    board = cur_game['start_board']
+    board = cur_game.start_board
     if board == "DEFAULT":
         board = constants.DEFAULT_BOARD
     elif board == "CASTLE":
@@ -142,10 +155,8 @@ def join_game(game_id):
     else:
         board = json.loads(board)
 
-
     new_game = Board(host_player, player_name, board, first_player == host_player)
-
-    num_random_turns = cur_game['num_random_turns']
+    num_random_turns = cur_game.num_random_turns
     last_move = ''
     for _ in range(num_random_turns):
         last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
@@ -154,40 +165,41 @@ def join_game(game_id):
     new_game_json = new_game.to_json()
     thread_id = ''
     # Need to add thread ID to DB, that's why we're calling it before.
-    if cur_game['discord']:
+    if cur_game.discord:
         thread_id = start_game_thread(host_player, player_name, game_id)
         announce_game_start_in_main_channel(host_player, player_name, thread_id)
-    c.execute(
-        "UPDATE isolationgame SET player2 = ?, player2_secret = ?, game_status = ?, game_state = ?, current_queen = ?, last_move = ?, thread_id = ?, updated_at = ? WHERE uuid = ? AND game_status = ?",
-        (request.form['player_name'], player_secret, constants.GameStatus.IN_PROGRESS, new_game_json, first_player, last_move, thread_id, time.time(), game_id, constants.GameStatus.NEED_SECOND_PLAYER)
-    )
-
-    conn.commit()
-    conn.close()
+    cur_game.player2 = request.form['player_name']
+    cur_game.player2_secret = player_secret
+    cur_game.game_status = constants.GameStatus.IN_PROGRESS
+    cur_game.game_state = new_game_json
+    cur_game.current_queen = first_player
+    cur_game.last_move = last_move
+    cur_game.thread_id = thread_id
+    session.add(cur_game)
+    session.commit()
+    session.close()
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
 
 
 def _get_game_status(game_id):
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    c.row_factory = sqlite3.Row
-    c.execute("SELECT * FROM isolationgame WHERE uuid = ?", (game_id,))
-    cur_game = c.fetchone()
+    session = DBSession()
+    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
+    session.close()
     if cur_game is None:
         return None
     return {
-            'game_status': cur_game['game_status'],
-            'current_queen': cur_game['current_queen'],
-            'player1': cur_game['player1'],
-            'player2': cur_game['player2'],
-            'time_limit': cur_game['time_limit'],
-            'winner': cur_game['winner'],
-            'last_move_time': cur_game['updated_at'],
-            'last_move': cur_game['last_move'],
-            'game_state': cur_game['game_state'],
-            'new_game_uuid': cur_game['new_game_uuid'],
-            'created_at': cur_game['created_at'],
-            'updated_at': cur_game['updated_at'],
+            'game_status': cur_game.game_status,
+            'current_queen': cur_game.current_queen,
+            'player1': cur_game.player1,
+            'player2': cur_game.player2,
+            'time_limit': cur_game.time_limit,
+            'winner': cur_game.winner,
+            'last_move_time': datetime.datetime.timestamp(cur_game.updated_at),
+            'last_move': cur_game.last_move,
+            'game_state': cur_game.game_state,
+            'new_game_uuid': cur_game.new_game_uuid,
+            'created_at': datetime.datetime.timestamp(cur_game.created_at),
+            'updated_at': datetime.datetime.timestamp(cur_game.updated_at),
         }
 
 
@@ -209,13 +221,11 @@ def get_game_status(game_id):
 
 
 def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_wins):
-    c = conn.cursor()
-    c.row_factory = sqlite3.Row
-    c.execute("SELECT * FROM isolationgame WHERE uuid = ?", (game_id,))
-    cur_game = c.fetchone()
-    first_player = random.choice([cur_game['player1'], cur_game['player2']])
-    new_uuid = str(uuid.uuid4())
-    board = cur_game['start_board']
+    session = DBSession()
+    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
+
+    first_player = random.choice([cur_game.player1, cur_game.player2])
+    board = cur_game.start_board
     if board == "DEFAULT":
         board = constants.DEFAULT_BOARD
     elif board == "CASTLE":
@@ -223,43 +233,59 @@ def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_w
     else:
         board = json.loads(board)
 
-    new_game = Board(cur_game['player1'], cur_game['player2'], board, first_player == cur_game['player1'])
+    new_game = Board(cur_game.player1, cur_game.player2, board, first_player == cur_game.player1)
     new_game_json = new_game.to_json()
 
-    c.execute('INSERT INTO isolationgame (uuid, player1, player1_secret, player2, player2_secret, start_board, game_state, game_status, time_limit, num_random_turns, discord, num_rounds, current_queen, last_move, thread_id, player1_wins, player2_wins, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              (new_uuid, cur_game['player1'], cur_game['player1_secret'], cur_game['player2'], cur_game['player2_secret'], cur_game['start_board'], new_game_json, constants.GameStatus.IN_PROGRESS, cur_game['time_limit'], cur_game['num_random_turns'], cur_game['discord'], cur_game['num_rounds']-1, first_player, '', cur_game['thread_id'], player1_wins, player2_wins, time.time(), time.time()))
-    conn.commit()
-    return new_uuid
+    new_game_db = IsolationGame(
+        player1=cur_game.player1,
+        player1_secret=cur_game.player1_secret,
+        player2=cur_game.player2,
+        player2_secret=cur_game.player2_secret,
+        start_board=cur_game.start_board,
+        game_state=new_game_json,
+        game_status=constants.GameStatus.IN_PROGRESS,
+        time_limit=cur_game.time_limit,
+        num_random_turns=cur_game.num_random_turns,
+        discord=cur_game.discord,
+        num_rounds=cur_game.num_rounds-1,
+        current_queen=first_player,
+        last_move='',
+        thread_id=cur_game.thread_id,
+        player1_wins=player1_wins,
+        player2_wins=player2_wins,
+    )
+    session.add(new_game_db)
+    session.commit()
+    new_game_uuid = new_game_db.uuid
+    session.close()
+    return new_game_uuid
 
 
 def _end_game(game_id, winner, reason=''):
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    # c.row_factory = sqlite3.Row
-    # Get game from DB
-    c.execute("SELECT game_status, discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins FROM isolationgame WHERE uuid = ?", (game_id,))
-    game_status, discord, thread_id, game_state, num_rounds, player1, player2, player1_wins, player2_wins = c.fetchone()
-    if winner.split(" - ")[0] == player1:
-        player1_wins += 1
-    elif winner.split(" - ")[0] == player2:
-        player2_wins += 1
+    session = DBSession()
+    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
+    if winner.split(" - ")[0] == cur_game.player1:
+        cur_game.player1_wins += 1
+    elif winner.split(" - ")[0] == cur_game.player2:
+        cur_game.player2_wins += 1
     else:
         raise ValueError(f'Unknown winner {winner}')
     new_game_uuid = ''
-    num_rounds -= 1
-    if num_rounds > 0 and abs(player1_wins - player2_wins) <= num_rounds:
-        new_game_uuid = generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_wins)
+    new_game_num_rounds = cur_game.num_rounds - 1
+    if new_game_num_rounds > 0 and abs(cur_game.player1_wins - cur_game.player2_wins) <= new_game_num_rounds:
+        new_game_uuid = generate_new_game_with_prev_game_data(game_id, session, cur_game.player1_wins, cur_game.player2_wins)
 
-    c.execute("UPDATE isolationgame SET game_status = ?, winner = ?, new_game_uuid = ?, player1_wins = ?, player2_wins=? WHERE uuid = ?", (constants.GameStatus.FINISHED, winner, new_game_uuid, player1_wins, player2_wins, game_id))
-    conn.commit()
-    conn.close()
-    board = Board.from_json(game_state)
-    if discord and thread_id and game_status != constants.GameStatus.NEED_SECOND_PLAYER:
-        announce_game_over(thread_id, winner, board, new_game_uuid == "", player1_wins, player2_wins, reason=reason)
+    cur_game.game_status = constants.GameStatus.FINISHED
+    cur_game.winner = winner
+    cur_game.new_game_uuid = new_game_uuid
+    session.commit()
+    if cur_game.discord and cur_game.thread_id and cur_game.game_status != constants.GameStatus.NEED_SECOND_PLAYER:
+        board = Board.from_json(cur_game.game_state)
+        announce_game_over(cur_game.thread_id, winner, board, new_game_uuid == "", cur_game.player1_wins, cur_game.player2_wins, reason=reason)
+    session.close()
     return flask.jsonify(
         _get_game_status(game_id)
     )
-
 
 @application.route('/game/<game_id>/move', methods=['POST'])
 def make_move(game_id):
@@ -284,32 +310,30 @@ def make_move(game_id):
     if move:
         move = tuple(json.loads(move))
     client_time = float(request.form['client_time'])
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    c.row_factory = sqlite3.Row
-    c.execute("SELECT * FROM isolationgame WHERE uuid = ?", (game_id,))
-    cur_game = c.fetchone()
+    session = DBSession()
+    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one_or_none()
+
     if cur_game is None:
         return flask.jsonify({'status': 'error', 'message': 'Game not found'}), 400
 
     # Check that the game is in progress or waiting to start
-    if cur_game['game_status'] != constants.GameStatus.IN_PROGRESS:
+    if cur_game.game_status != constants.GameStatus.IN_PROGRESS:
         return flask.jsonify({'status': 'error', 'message': 'Game not in progress'}), 400
 
     # Check that the player is in the game
-    if cur_game['player1'] != player_name and cur_game['player2'] != player_name:
+    if cur_game.player1 != player_name and cur_game.player2 != player_name:
         return flask.jsonify({'status': 'error', 'message': 'Player not in game'}), 400
 
     # Check that it is the player's turn, and the secret is correct
-    if (cur_game['current_queen'] == cur_game['player1']):
+    if (cur_game.current_queen == cur_game.player1):
         # Test that the current player is the host and the secret is correct
-        other_player = cur_game['player2']
-        if cur_game['player1'] == player_name and cur_game['player1_secret'] != player_secret:
+        other_player = cur_game.player2
+        if cur_game.player1 == player_name and cur_game.player1_secret != player_secret:
             return flask.jsonify({'status': 'error', 'message': 'Invalid next player'}), 400
     else:
         # Test that the current player is the guest and the secret is correct
-        other_player = cur_game['player1']
-        if cur_game['player2'] == player_name and cur_game['player2_secret'] != player_secret:
+        other_player = cur_game.player1
+        if cur_game.player2 == player_name and cur_game.player2_secret != player_secret:
             return flask.jsonify({'status': 'error', 'message': 'Invalid next player'}), 400
 
     # Check that the timestamp they sent is within 1 second of the server's time
@@ -319,12 +343,12 @@ def make_move(game_id):
     #     return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
     # Check their timestamp is within the time limit (within some bounds)
-    if client_time - cur_game['updated_at'] > (1 + cur_game['time_limit']):
+    if client_time - datetime.datetime.timestamp(cur_game.updated_at) > (1 + cur_game.time_limit):
         # Set the game as finished
-        return _end_game(game_id, other_player, reason=f'You took too long, client_time: {client_time}, last move at: {cur_game["updated_at"]}, time_limit: {cur_game["time_limit"]}')
+        return _end_game(game_id, other_player, reason=f'You took too long, client_time: {client_time}, last move at: {cur_game.updated_at}, time_limit: {cur_game.time_limit}')
 
     # Create the board based on the game state and make the move
-    board = Board.from_json(cur_game['game_state'])
+    board = Board.from_json(cur_game.game_state)
     # Check that the move is legal
     if move not in board.get_player_moves(player_name):
         return _end_game(
@@ -338,49 +362,33 @@ def make_move(game_id):
 
     announce_game_move(board, cur_game, player_name, move)
 
+    cur_game.game_state = new_game_state
+    cur_game.game_status = new_game_status
+    cur_game.current_queen = other_player
+    cur_game.last_move = json.dumps(move)
+    cur_game.winner = winner
+    session.add(cur_game)
+    session.commit()
+    session.close()
     # Update the game state
-    c.execute("UPDATE isolationgame SET game_state = ?, game_status = ?, current_queen = ?, updated_at = ?, last_move = ?, winner = ?, updated_at = ? WHERE uuid = ?", (new_game_state, new_game_status, other_player, time.time(), json.dumps(move), winner, time.time(), game_id))
-    conn.commit()
-    conn.close()
     if new_game_status == constants.GameStatus.FINISHED:
         return _end_game(game_id, winner, reason=f'{winner} won')
     return flask.jsonify(_get_game_status(game_id))
 
 
-def setup_db_first_time():
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    # Run the SQL command in sql/isolation_games.sql
-    with open('sql/isolation_games.sql', 'r') as f:
-        sql = f.read()
-        c.executescript(sql)
-    conn.commit()
-    conn.close()
-
-
 def _get_game_counts():
-    conn = sqlite3.connect('sql/isolation.db')
-    c = conn.cursor()
-    c.row_factory = sqlite3.Row
-    c.execute("SELECT game_status, COUNT(*) FROM isolationgame GROUP BY game_status")
-    game_counts = c.fetchall()
-    conn.close()
+    session = DBSession()
+    game_counts = session.query(IsolationGame.game_status, func.count()).group_by(IsolationGame.game_status).all()
+    session.close()
     # convert to dict
-    game_counts = {row['game_status']: row['COUNT(*)'] for row in game_counts}
+    game_counts = {status: count for status, count in game_counts}
     return game_counts
 
 
 @application.route('/')
 def index():
     # Count number of games group by status
-    try:
-        game_counts = _get_game_counts()
-    except sqlite3.OperationalError as e:
-        if 'no such table' in str(e):
-            setup_db_first_time()
-            game_counts = _get_game_counts()
-        else:
-            raise e
+    game_counts = _get_game_counts()
     return flask.jsonify({'game_counts': game_counts, 'status': 'ok', 'hello': 'world'})
 
 
@@ -389,5 +397,4 @@ def emojify_board(board):
 
 
 if __name__ == '__main__':
-    setup_db_first_time()
     application.run()

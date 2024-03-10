@@ -143,7 +143,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
             MAKE_MOVE % game_id, data={
                 'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': time.time()})
         if not make_move_request.ok:
-            print('Error', make_move_request.json())
+            print('Error', make_move_request.text)
             return
         time.sleep(PING_INTERVAL)
 
