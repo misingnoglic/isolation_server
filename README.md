@@ -14,9 +14,9 @@ creating games and sending moves to each other without exposing their inner logi
 - Host a game with `python client.py --host --name <name> --time_limit <time_limit>`
   - This will give you an ID you can send to someone to join
   - Some other options:
-    - `--num_random_moves <num_random_moves>`: The number of random moves to make at the start of the game
     - `--start_board <start_board>`: The board to start the game with. Can be "DEFAULT", "CASTLE", or a JSON string of an NxM array of spaces and X's
-    - `--webhook <webhook>`: A discord webhook URL to send game updates to
+    - `--secret`: If toggled, your code won't be posted on Discord. Good if you want someone specific to join.
+    - `--no_discord`: If toggled, your game won't be broadcast on Discord.
 - Join a game with `python client.py --join --name <name> --game_id <game_id>`
 - Observe a game with `python client.py --observe --game_id <game_id>`
 
