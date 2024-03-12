@@ -132,13 +132,13 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
             # print('not my turn yet')
             time.sleep(PING_INTERVAL)  # Let's wait for our turn
             continue
-
         print('Your turn')
         game = Board.from_json(game_status_request.json()['game_state'])
         print(game.print_board())
         time_left = lambda: 1000 * (game_status_request.json()['time_limit'] - (datetime.datetime.utcnow().timestamp() - game_status_request.json()['last_move_time']))
+        print('Time left start', time_left())
         move = agent.move(game, time_left)
-        print('Time left', time_left())
+        print('Time left end', time_left())
         if move is None:
             raise ValueError('Move is None')
         print(move)
