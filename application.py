@@ -213,12 +213,12 @@ def _get_game_status(game_id):
             'player2': cur_game.player2,
             'time_limit': cur_game.time_limit,
             'winner': cur_game.winner,
-            'last_move_time': datetime.datetime.timestamp(cur_game.updated_at),
+            'last_move_time': cur_game.updated_at,
             'last_move': cur_game.last_move,
             'game_state': cur_game.game_state,
             'new_game_uuid': cur_game.new_game_uuid,
-            'created_at': datetime.datetime.timestamp(cur_game.created_at),
-            'updated_at': datetime.datetime.timestamp(cur_game.updated_at),
+            'created_at': cur_game.created_at,
+            'updated_at': cur_game.updated_at,
             'discord': cur_game.discord,
         }
 
@@ -370,7 +370,7 @@ def make_move(game_id):
     #     return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
     # Check their timestamp is within the time limit (within some bounds)
-    if client_time - datetime.datetime.timestamp(cur_game.updated_at) > (1 + cur_game.time_limit):
+    if client_time - cur_game.updated_at > (1 + cur_game.time_limit):
         # Set the game as finished
         return _end_game(game_id, other_player, reason=f'You took too long, client_time: {client_time}, last move at: {cur_game.updated_at}, time_limit: {cur_game.time_limit}')
 

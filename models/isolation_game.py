@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, Float, Boolean, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Text, Float, Boolean, TIMESTAMP, func
 import uuid
 import datetime
+
 
 try:
     from base import Base
@@ -26,8 +27,8 @@ class IsolationGame(Base):
     time_limit = Column(Integer, nullable=False)
     epoch_time_limit_next_move = Column(Float, default=0)
     num_random_turns = Column(Integer, default=0)
-    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
-    updated_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(Float, default=lambda: datetime.datetime.utcnow().timestamp())
+    updated_at = Column(Float, default=lambda: datetime.datetime.utcnow().timestamp(), onupdate=lambda: datetime.datetime.utcnow().timestamp())
     thread_id = Column(String(100), default='')
     discord = Column(Boolean, default=True)
     num_rounds = Column(Integer, default=1)
