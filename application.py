@@ -148,6 +148,15 @@ def _apply_random_moves_to_board(start_board, num_random_turns, host, joiner, pl
     raise ValueError(f'Could not apply random moves to board after {NUM_TRIES} tries, invalid settings')
 
 
+def gen_random_board(pct_chance_x=0.1, width=constants.DEFAULT_WIDTH, height=constants.DEFAULT_HEIGHT):
+    import random
+    board = [[" " for i in range(width)] for j in range(height)]
+    for i in range(height):
+        for j in range(width):
+            if random.random() < pct_chance_x:
+                board[i][j] = "X"
+    return board
+
 @application.route('/game/<game_id>/join', methods=['POST'])
 def join_game(game_id):
     """Join a game.
@@ -173,6 +182,8 @@ def join_game(game_id):
         board = copy.deepcopy(constants.DEFAULT_BOARD)
     elif board == "CASTLE":
         board = copy.deepcopy(constants.CASTLE_BOARD)
+    elif board == "RANDOM":
+        board = gen_random_board()
     else:
         board = json.loads(board)
 
@@ -255,6 +266,8 @@ def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_w
         board = copy.deepcopy(constants.DEFAULT_BOARD)
     elif board == "CASTLE":
         board = copy.deepcopy(constants.CASTLE_BOARD)
+    elif board == "RANDOM":
+        board = gen_random_board()
     else:
         board = json.loads(board)
 
@@ -329,15 +342,13 @@ def make_move(game_id):
     - New game state
     - Winner (if game is over)
     """
-
+    request_time = datetime.datetime.utcnow().timestamp()
     # Get the game
     player_name = request.form['player_name']
     player_secret = request.form['player_secret']
     move = request.form['move']
     if move:
         move = tuple(json.loads(move))
-    # client_time = float(request.form['client_time'])
-    client_time = datetime.datetime.utcnow().timestamp()
     session = DBSession()
     cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one_or_none()
 
@@ -353,7 +364,7 @@ def make_move(game_id):
         return flask.jsonify({'status': 'error', 'message': 'Player not in game'}), 400
 
     # Check that it is the player's turn, and the secret is correct
-    if (cur_game.current_queen == cur_game.player1):
+    if cur_game.current_queen == cur_game.player1:
         # Test that the current player is the host and the secret is correct
         other_player = cur_game.player2
         if cur_game.player1 == player_name and cur_game.player1_secret != player_secret:
@@ -371,9 +382,10 @@ def make_move(game_id):
     #     return flask.jsonify({'status': 'error', 'message': 'I don\'t believe your timestamp...'}), 400
 
     # Check their timestamp is within the time limit (within some bounds)
-    if client_time - cur_game.updated_at > (1 + cur_game.time_limit):
+    TIMEOUT_BUFFER = 1.5
+    if (request_time - cur_game.updated_at) > (TIMEOUT_BUFFER + cur_game.time_limit):
         # Set the game as finished
-        return _end_game(game_id, other_player, reason=f'You took too long, client_time: {client_time}, last move at: {cur_game.updated_at}, time_limit: {cur_game.time_limit}')
+        return _end_game(game_id, other_player, reason=f'You took too long, client_time: {request_time}, last move at: {cur_game.updated_at}, time_limit: {cur_game.time_limit}')
 
     # Create the board based on the game state and make the move
     board = Board.from_json(cur_game.game_state)
