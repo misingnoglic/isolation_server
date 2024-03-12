@@ -1,12 +1,12 @@
 from sqlalchemy import Column, Integer, String, Text, Float, Boolean, TIMESTAMP
-from sqlalchemy.ext.declarative import declarative_base
 import uuid
-from sqlalchemy.sql import func
+import datetime
 
 try:
     from base import Base
 except ImportError:
     from .base import Base
+
 
 class IsolationGame(Base):
     __tablename__ = 'isolation_game'
@@ -26,8 +26,8 @@ class IsolationGame(Base):
     time_limit = Column(Integer, nullable=False)
     epoch_time_limit_next_move = Column(Float, default=0)
     num_random_turns = Column(Integer, default=0)
-    created_at = Column(TIMESTAMP, default=func.now())
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     thread_id = Column(String(100), default='')
     discord = Column(Boolean, default=True)
     num_rounds = Column(Integer, default=1)

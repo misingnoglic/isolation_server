@@ -4,7 +4,6 @@ from flask import request
 import random
 import json
 from server_isolation import Board
-import time
 import constants
 from discord_webhook import DiscordWebhook, DiscordEmbed
 try:
@@ -16,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from models.base import Base
 from models.isolation_game import IsolationGame
 import datetime
+import copy
 
 application = flask.Flask(__name__)
 application.config['SQLALCHEMY_DATABASE_URI'] = server_secrets.DB_URL
@@ -26,6 +26,7 @@ DBSession = sessionmaker(bind=engine)
 
 
 false_values = ['false', 'f', '0', 'no', 'n', '']
+
 
 @application.route('/game/new', methods=['POST'])
 def host_game():
@@ -40,7 +41,7 @@ def host_game():
     """
     player_secret = str(uuid.uuid4())
     start_board = request.form['start_board']
-    num_random_turns = 0  # TODO: This results in really buggy games, so I'm setting it to 0 for now
+    num_random_turns = int(request.form.get('num_random_turns', 0))
     num_rounds = int(request.form.get('num_rounds', 1))
     time_limit = request.form['time_limit']
     if 60 < int(time_limit) < 1:
@@ -66,7 +67,7 @@ def host_game():
     if discord and not secret:
         webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
         start_board_str = start_board if len(start_board) < 20 else "CUSTOM"
-        rules = f'start_board = {start_board_str}, time limit = {request.form["time_limit"]}, num rounds = {num_rounds}'
+        rules = f'start_board = {start_board_str}, time limit = {request.form["time_limit"]}, num rounds = {num_rounds}, num_random_turns = {num_random_turns}'
         embed = DiscordEmbed(title="New Game!", description=f'{request.form["player_name"]} is waiting for a player, join them with this game ID: {game_id}. Rules are: {rules}')
         webhook.add_embed(embed)
         webhook.execute()
@@ -98,6 +99,7 @@ def announce_game_move(board, cur_game, player_name, move):
         return
     formatted_board = emojify_board(board.print_board())
     webhook = DiscordWebhook(url=server_secrets.GAME_WEBHOOK_URL, thread_id=cur_game.thread_id)
+    print(cur_game.player1, cur_game.player2, player_name)
     if cur_game.player1 == player_name:
         player_icon = "🟥"
         color = "c41e3a"
@@ -127,6 +129,25 @@ def announce_game_over(thread_id, winner, board, last_round, player1_wins, playe
     webhook.execute()
 
 
+def _apply_random_moves_to_board(start_board, num_random_turns, host, joiner, player1, player2):
+    NUM_TRIES = 3
+    for _ in range(NUM_TRIES):
+        new_game = Board(host, joiner, start_board, player1 == host)
+        game_over, winner = False, None
+        for _ in range(num_random_turns):
+            game_over, winner = new_game.__apply_move__(random.choice(new_game.get_player_moves(player1)))
+            if game_over:
+                break
+            game_over, winner = new_game.__apply_move__(random.choice(new_game.get_player_moves(player2)))
+            if game_over:
+                break
+        if not game_over:
+            last_move = json.dumps('')
+            new_game_json = new_game.to_json()
+            return last_move, new_game_json
+    raise ValueError(f'Could not apply random moves to board after {NUM_TRIES} tries, invalid settings')
+
+
 @application.route('/game/<game_id>/join', methods=['POST'])
 def join_game(game_id):
     """Join a game.
@@ -149,20 +170,18 @@ def join_game(game_id):
     second_player = host_player if first_player == player_name else player_name
     board = cur_game.start_board
     if board == "DEFAULT":
-        board = constants.DEFAULT_BOARD
+        board = copy.deepcopy(constants.DEFAULT_BOARD)
     elif board == "CASTLE":
-        board = constants.CASTLE_BOARD
+        board = copy.deepcopy(constants.CASTLE_BOARD)
     else:
         board = json.loads(board)
 
-    new_game = Board(host_player, player_name, board, first_player == host_player)
     num_random_turns = cur_game.num_random_turns
-    last_move = ''
-    for _ in range(num_random_turns):
-        last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(first_player)))
-        last_move = new_game.__apply_move__(random.choice(new_game.get_player_moves(second_player)))
-    last_move = json.dumps(last_move)
-    new_game_json = new_game.to_json()
+    try:
+        last_move, new_game_json = _apply_random_moves_to_board(board, num_random_turns, host_player, player_name, first_player, second_player)
+    except ValueError as e:
+        _end_game(game_id, '', reason=str(e))
+        return flask.jsonify({'status': 'error', 'message': str(e)}), 400
     thread_id = ''
     # Need to add thread ID to DB, that's why we're calling it before.
     if cur_game.discord:
@@ -200,6 +219,7 @@ def _get_game_status(game_id):
             'new_game_uuid': cur_game.new_game_uuid,
             'created_at': datetime.datetime.timestamp(cur_game.created_at),
             'updated_at': datetime.datetime.timestamp(cur_game.updated_at),
+            'discord': cur_game.discord,
         }
 
 
@@ -207,15 +227,18 @@ def _get_game_status(game_id):
 def get_game_status(game_id):
     """Get the state of a game.
     """
+    request_time = datetime.datetime.utcnow().timestamp()
     game_status = _get_game_status(game_id)
     if game_status is None:
         return flask.jsonify({'status': 'error', 'message': 'Game not found'}), 404
-    if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < time.time():
+    if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < request_time:
         # Update status to finished and set the winner to the other player
         _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason=f'Timeout, status checked and significant time after last move')
-    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and game_status['created_at'] + 60 * 5 < time.time():
+    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and (game_status['created_at'] + 60 * 10) < request_time:
         # Update status to finished and set the winner to the other player
-        announce_game_start_timeout(game_id)
+        if game_status['discord']:
+            announce_game_start_timeout(game_id)
+        print(f'Game created at {game_status["created_at"]} and request time is {request_time} and 10 minutes have passed')
         _end_game(game_id, '', reason=f'No second player joined in time')
     return flask.jsonify(game_status)
 
@@ -225,16 +248,19 @@ def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_w
     cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
 
     first_player = random.choice([cur_game.player1, cur_game.player2])
+    second_player = cur_game.player1 if first_player == cur_game.player2 else cur_game.player2
     board = cur_game.start_board
     if board == "DEFAULT":
-        board = constants.DEFAULT_BOARD
+        board = copy.deepcopy(constants.DEFAULT_BOARD)
     elif board == "CASTLE":
-        board = constants.CASTLE_BOARD
+        board = copy.deepcopy(constants.CASTLE_BOARD)
     else:
         board = json.loads(board)
 
-    new_game = Board(cur_game.player1, cur_game.player2, board, first_player == cur_game.player1)
-    new_game_json = new_game.to_json()
+    num_random_turns = cur_game.num_random_turns
+
+    last_move, new_game_json = _apply_random_moves_to_board(
+        board, num_random_turns, cur_game.player1, cur_game.player2, first_player, second_player)
 
     new_game_db = IsolationGame(
         player1=cur_game.player1,
@@ -249,7 +275,7 @@ def generate_new_game_with_prev_game_data(game_id, conn, player1_wins, player2_w
         discord=cur_game.discord,
         num_rounds=cur_game.num_rounds-1,
         current_queen=first_player,
-        last_move='',
+        last_move=last_move,
         thread_id=cur_game.thread_id,
         player1_wins=player1_wins,
         player2_wins=player2_wins,
@@ -309,7 +335,8 @@ def make_move(game_id):
     move = request.form['move']
     if move:
         move = tuple(json.loads(move))
-    client_time = float(request.form['client_time'])
+    # client_time = float(request.form['client_time'])
+    client_time = datetime.datetime.utcnow().timestamp()
     session = DBSession()
     cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one_or_none()
 

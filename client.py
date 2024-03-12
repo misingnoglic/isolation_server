@@ -6,6 +6,7 @@ import client_config
 from server_isolation import Board
 import json
 import time
+import datetime
 import click
 
 # Set to the public URL
@@ -75,7 +76,7 @@ def test_run():
         print(move)
         make_move_request = requests.post(
             MAKE_MOVE % game_id, data={
-                'player_name': player.get_name(), 'player_secret': player.secret, 'move': json.dumps(move), 'client_time': time.time()})
+                'player_name': player.get_name(), 'player_secret': player.secret, 'move': json.dumps(move), 'client_time': datetime.datetime.utcnow().timestamp()})
         print(make_move_request.json())
         time.sleep(PING_INTERVAL)
 
@@ -115,9 +116,11 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         if game_status_request.json()['game_status'] != constants.GameStatus.IN_PROGRESS:
             print('Game finished - winner is', game_status_request.json()['winner'])
             print('Final board:')
-            game = Board.from_json(game_status_request.json()['game_state'])
-            print(game.print_board())
-            print(game_status_request.json())
+            game_state = game_status_request.json()['game_state']
+            if game_state:
+                game = Board.from_json(game_state)
+                print(game.print_board())
+                print(game_status_request.json())
             if game_status_request.json()['new_game_uuid']:
                 game_id = game_status_request.json()['new_game_uuid']
                 print('New game started', game_id)
@@ -133,7 +136,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         print('Your turn')
         game = Board.from_json(game_status_request.json()['game_state'])
         print(game.print_board())
-        time_left = lambda: 1000 * (game_status_request.json()['time_limit'] - (time.time() - game_status_request.json()['last_move_time']))
+        time_left = lambda: 1000 * (game_status_request.json()['time_limit'] - (datetime.datetime.utcnow().timestamp() - game_status_request.json()['last_move_time']))
         move = agent.move(game, time_left)
         print('Time left', time_left())
         if move is None:
@@ -141,7 +144,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         print(move)
         make_move_request = requests.post(
             MAKE_MOVE % game_id, data={
-                'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': time.time()})
+                'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': datetime.datetime.utcnow().timestamp()})
         if not make_move_request.ok:
             print('Error', make_move_request.text)
             return
