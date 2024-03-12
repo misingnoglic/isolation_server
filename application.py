@@ -214,6 +214,7 @@ def _get_game_status(game_id):
             'time_limit': cur_game.time_limit,
             'winner': cur_game.winner,
             'last_move_time': cur_game.updated_at,
+            'time_left': cur_game.time_limit - (datetime.datetime.utcnow().timestamp() - cur_game.updated_at),
             'last_move': cur_game.last_move,
             'game_state': cur_game.game_state,
             'new_game_uuid': cur_game.new_game_uuid,
