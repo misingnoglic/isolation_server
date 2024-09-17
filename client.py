@@ -81,7 +81,7 @@ def test_run():
         time.sleep(PING_INTERVAL)
 
 
-def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds):
+def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds, player_to_use):
     payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret, 'num_rounds': num_rounds}
     new_game = requests.post(NEW_GAME, data=payload)
     if not new_game.ok:
@@ -91,7 +91,10 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
     game_id = new_game.json()['game_id']
     print(new_game.json()['game_id'])
     my_secret = new_game.json()['player_secret']
-    agent = PLAYER_CLASS()
+    if player_to_use:
+        agent = client_config.PLAYER_CLASSES[player_to_use]()
+    else:
+        agent = PLAYER_CLASS()
     agent.name = my_name
 
     while True:
@@ -153,7 +156,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         time.sleep(PING_INTERVAL)
 
 
-def join_game(game_id, my_name):
+def join_game(game_id, my_name, player_to_use):
     join_game = requests.post(JOIN_GAME % game_id, data={'player_name': my_name})
     print(join_game.json())
     if not join_game.ok:
@@ -161,7 +164,10 @@ def join_game(game_id, my_name):
         return
     print(join_game.json())
     my_secret = join_game.json()['player_secret']
-    agent = PLAYER_CLASS()
+    if player_to_use:
+        agent = client_config.PLAYER_CLASSES[player_to_use]()
+    else:
+        agent = PLAYER_CLASS()
     agent.name = my_name
     print('successfully joined game')
     play_until_game_is_over(game_id, my_name, my_secret, agent)
@@ -202,11 +208,12 @@ def observe_game(game_id):
 @click.option('--discord/--no_discord', help='Whether to replay on class Discord server', default=True, is_flag=True)
 @click.option('--secret', help='Whether to announce the game to class Discord server', is_flag=True)
 @click.option('--num_rounds', help='Number of rounds to play', default=1, type=int)
-def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, discord, secret, num_rounds):
+@click.option('--player_to_use', help='Which config player to use', default='')
+def main(host, join, observe, test, game_id, start_board, num_random_turns, name, time_limit, discord, secret, num_rounds, player_to_use):
     if host:
-        host_game(name, time_limit, start_board, num_random_turns, discord, secret, num_rounds)
+        host_game(name, time_limit, start_board, num_random_turns, discord, secret, num_rounds, player_to_use)
     elif join:
-        join_game(game_id, name)
+        join_game(game_id, name, player_to_use)
     elif test:
         test_run()
     elif observe:

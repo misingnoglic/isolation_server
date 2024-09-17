@@ -99,7 +99,6 @@ def announce_game_move(board, cur_game, player_name, move):
         return
     formatted_board = emojify_board(board.print_board())
     webhook = DiscordWebhook(url=server_secrets.GAME_WEBHOOK_URL, thread_id=cur_game.thread_id)
-    print(cur_game.player1, cur_game.player2, player_name)
     if cur_game.player1 == player_name:
         player_icon = "🟥"
         color = "c41e3a"
@@ -148,8 +147,7 @@ def _apply_random_moves_to_board(start_board, num_random_turns, host, joiner, pl
     raise ValueError(f'Could not apply random moves to board after {NUM_TRIES} tries, invalid settings')
 
 
-def gen_random_board(pct_chance_x=0.1, width=constants.DEFAULT_WIDTH, height=constants.DEFAULT_HEIGHT):
-    import random
+def gen_random_board(pct_chance_x=0.2, width=constants.DEFAULT_WIDTH, height=constants.DEFAULT_HEIGHT):
     board = [[" " for i in range(width)] for j in range(height)]
     for i in range(height):
         for j in range(width):
