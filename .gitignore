@@ -3,6 +3,7 @@ sql/isolation.db
 .idea
 submission.py
 server_secrets_hardcoded.py
+test_isolated.py
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

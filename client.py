@@ -19,7 +19,7 @@ MAKE_MOVE = URL + '/game/%s/move'
 JOIN_GAME = URL + '/game/%s/join'
 
 # Set your player class here
-PLAYER_CLASS = client_config.PLAYER_CLASS
+PLAYER_CLASS = client_config.DEFAULT_PLAYER_CLASS
 
 PING_INTERVAL = 0.5
 
@@ -182,7 +182,7 @@ def observe_game(game_id):
         if game_status != prev_game_status or game_status['current_queen'] != prev_current_queen:
             current_status = game_status['game_status']
             print(f'Game status: {current_status}')
-            print(f'Current queen: {game_status["current_queen"]}')
+            print(f'Current knight: {game_status["current_queen"]}')
             print(f'Last move: {game_status["last_move"]}')
             board_state = game_status['game_state']
             game = Board.from_json(board_state)
@@ -201,7 +201,7 @@ def observe_game(game_id):
 @click.option('--observe', is_flag=True, help='Observe an existing game')
 @click.option('--test', is_flag=True, help='Host a new game')
 @click.option('--game_id', help='Game ID to join')
-@click.option('--start_board', help='Start board (DEFAULT or CASTLE or RANDOM or JSON dumped custom board of spaces and Xs)', default='CASTLE')
+@click.option('--start_board', help='Start board (DEFAULT or CASTLE or RANDOM or JSON dumped custom board of spaces and Xs)', default='DEFAULT')
 @click.option('--num_random_turns', help='Number of random turns to make at the start', default=0, type=int)
 @click.option('--name', help='Your name')
 @click.option('--time_limit', default=None, help='Time limit for each move')

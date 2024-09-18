@@ -11,7 +11,7 @@ creating games and sending moves to each other without exposing their inner logi
 - Modify variables in client_config.py
  - Modify the URL if you are hosting it somewhere else.
  - Import your bot from the assignment.
-- Host a game with `python client.py --host --name <name> --time_limit <time_limit>`
+- Host a game with `python client.py --host --name <name> --time_limit <time_limit (s)>`
   - This will give you an ID you can send to someone to join
   - Some other options:
     - `--start_board <start_board>`: The board to start the game with. Can be "DEFAULT", "CASTLE", or a JSON string of an NxM array of spaces and X's

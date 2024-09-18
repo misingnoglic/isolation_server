@@ -45,25 +45,25 @@ class Board:
         self.__player_1__ = player_1
         self.__player_2__ = player_2
 
-        self.__queen_1__ = player_1 + " - Q1"
-        self.__queen_2__ = player_2 + " - Q2"
+        self.__knight_1__ = player_1 + " - K1"
+        self.__knight_2__ = player_2 + " - K2"
 
-        self.__queen_symbols__ = {self.__queen_1__: "Q1", self.__queen_2__: "Q2"}
+        self.__knight_symbols__ = {self.__knight_1__: "K1", self.__knight_2__: "K2"}
 
         self.__board_state__ = initial_board
 
-        self.__last_queen_move__ = {self.__queen_1__: Board.NOT_MOVED, self.__queen_2__: Board.NOT_MOVED}
+        self.__last_knight_move__ = {self.__knight_1__: Board.NOT_MOVED, self.__knight_2__: Board.NOT_MOVED}
 
         if start_with_p1:
             self.__active_player__ = player_1
             self.__inactive_player__ = player_2
-            self.__active_players_queen__ = self.__queen_1__
-            self.__inactive_players_queen__ = self.__queen_2__
+            self.__active_players_knight__ = self.__knight_1__
+            self.__inactive_players_knight__ = self.__knight_2__
         else:
             self.__active_player__ = player_2
             self.__inactive_player__ = player_1
-            self.__active_players_queen__ = self.__queen_2__
-            self.__inactive_players_queen__ = self.__queen_1__
+            self.__active_players_knight__ = self.__knight_2__
+            self.__inactive_players_knight__ = self.__knight_1__
 
         self.move_count = 0
 
@@ -71,14 +71,14 @@ class Board:
         return json.dumps({
             "player_1": self.__player_1__,
             "player_2": self.__player_2__,
-            "queen_1": self.__queen_1__,
-            "queen_2": self.__queen_2__,
-            "queen_symbols": self.__queen_symbols__,
-            "last_queen_move": self.__last_queen_move__,
+            "queen_1": self.__knight_1__,
+            "queen_2": self.__knight_2__,
+            "queen_symbols": self.__knight_symbols__,
+            "last_queen_move": self.__last_knight_move__,
             "active_player": self.__active_player__,
             "inactive_player": self.__inactive_player__,
-            "active_players_queen": self.__active_players_queen__,
-            "inactive_players_queen": self.__inactive_players_queen__,
+            "active_players_queen": self.__active_players_knight__,
+            "inactive_players_queen": self.__inactive_players_knight__,
             "move_count": self.move_count,
             "board_state": self.__board_state__,
             'height': self.height,
@@ -91,16 +91,16 @@ class Board:
         json_dict = json.loads(json_str)
         new_board.__player_1__ = json_dict["player_1"]
         new_board.__player_2__ = json_dict["player_2"]
-        new_board.__queen_1__ = json_dict["queen_1"]
-        new_board.__queen_2__ = json_dict["queen_2"]
-        new_board.__queen_symbols__ = json_dict["queen_symbols"]
+        new_board.__knight_1__ = json_dict["queen_1"]
+        new_board.__knight_2__ = json_dict["queen_2"]
+        new_board.__knight_symbols__ = json_dict["queen_symbols"]
         new_board.__board_state__ = json_dict["board_state"]
-        new_board.__last_queen_move__ = json_dict["last_queen_move"]
-        new_board.__last_queen_move__ = {k: tuple(v) for k, v in new_board.__last_queen_move__.items()}
+        new_board.__last_knight_move__ = json_dict["last_queen_move"]
+        new_board.__last_knight_move__ = {k: tuple(v) for k, v in new_board.__last_knight_move__.items()}
         new_board.__active_player__ = json_dict["active_player"]
         new_board.__inactive_player__ = json_dict["inactive_player"]
-        new_board.__active_players_queen__ = json_dict["active_players_queen"]
-        new_board.__inactive_players_queen__ = json_dict["inactive_players_queen"]
+        new_board.__active_players_knight__ = json_dict["active_players_queen"]
+        new_board.__inactive_players_knight__ = json_dict["inactive_players_queen"]
         new_board.move_count = json_dict["move_count"]
         # new_board.height = json_dict["height"]
         # new_board.width = json_dict["width"]
@@ -138,49 +138,49 @@ class Board:
         '''
         self.__board_state__ = board_state
 
-        queen_1_symbol = self.__queen_symbols__[self.__queen_1__]
+        queen_1_symbol = self.__knight_symbols__[self.__knight_1__]
         last_move_q1 = [(column, row.index(queen_1_symbol)) for column, row in enumerate(board_state) if queen_1_symbol in row]
         if last_move_q1 != []:
-            # set last move to the first found occurance of 'Q1'͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-            self.__last_queen_move__[self.__queen_1__] = last_move_q1[0]
+            # set last move to the first found occurance of 'K1'͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
+            self.__last_knight_move__[self.__knight_1__] = last_move_q1[0]
         else:
-            self.__last_queen_move__[self.__queen_1__] = Board.NOT_MOVED
+            self.__last_knight_move__[self.__knight_1__] = Board.NOT_MOVED
 
-        queen_2_symbol = self.__queen_symbols__[self.__queen_2__]
+        queen_2_symbol = self.__knight_symbols__[self.__knight_2__]
         last_move_q2 = [(column, row.index(queen_2_symbol)) for column, row in enumerate(board_state) if queen_2_symbol in row]
         if last_move_q2 != []:
-            self.__last_queen_move__[self.__queen_2__] = last_move_q2[0]
+            self.__last_knight_move__[self.__knight_2__] = last_move_q2[0]
         else:
-            self.__last_queen_move__[self.__queen_2__] = Board.NOT_MOVED
+            self.__last_knight_move__[self.__knight_2__] = Board.NOT_MOVED
 
         if p1_turn:
             self.__active_player__ = self.__player_1__
-            self.__active_players_queen__ = self.__queen_1__
+            self.__active_players_knight__ = self.__knight_1__
             self.__inactive_player__ = self.__player_2__
-            self.__inactive_players_queen__ = self.__queen_2__
+            self.__inactive_players_knight__ = self.__knight_2__
 
         else:
             self.__active_player__ = self.__player_2__
-            self.__active_players_queen__ = self.__queen_2__
+            self.__active_players_knight__ = self.__knight_2__
             self.__inactive_player__ = self.__player_1__
-            self.__inactive_players_queen__ = self.__queen_1__
+            self.__inactive_players_knight__ = self.__knight_1__
         # Count X's to get move count + 2 for initial moves͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-        self.move_count = sum(row.count('X') + row.count('Q1') + row.count('Q2') for row in board_state)
+        self.move_count = sum(row.count('X') + row.count('K1') + row.count('K2') for row in board_state)
 
     #function to edit to introduce any variant - edited for impact crater variant by Matthew Zhou (1/23/2023)͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-    def __apply_move__(self, queen_move):
+    def __apply_move__(self, knight_move):
         '''
         Apply chosen move to a board state and check for game end
         Parameters:
-            queen_move: (int, int), Desired move to apply. Takes the
+            knight_move: (int, int), Desired move to apply. Takes the
             form of (column, row). Move must be legal.
         Returns:
             result: (bool, str), Game Over flag, winner
         '''
         # print("Applying move:: ", queen_move)͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-        queen_move = tuple(queen_move)
-        col, row = queen_move
-        my_pos = self.__last_queen_move__[self.__active_players_queen__]
+        knight_move = tuple(knight_move)
+        row, col = knight_move
+        my_pos = self.__last_knight_move__[self.__active_players_knight__]
         #opponent_pos = self.__last_queen_move__[self.__inactive_players_queen__]͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
 
         ######Change the following lines to introduce any variant######͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
@@ -193,22 +193,22 @@ class Board:
         ######Change above lines to introduce any variant######͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
 
         # apply move of active player͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-        self.__last_queen_move__[self.__active_players_queen__] = queen_move
-        self.__board_state__[col][row] = self.__queen_symbols__[self.__active_players_queen__]
+        self.__last_knight_move__[self.__active_players_knight__] = knight_move
+        self.__board_state__[row][col] = self.__knight_symbols__[self.__active_players_knight__]
 
 
         # rotate the players͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
         self.__active_player__, self.__inactive_player__ = self.__inactive_player__, self.__active_player__
 
-        # rotate the queens͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-        self.__active_players_queen__, self.__inactive_players_queen__ = self.__inactive_players_queen__, self.__active_players_queen__
+        # rotate the knights󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
+        self.__active_players_knight__, self.__inactive_players_knight__ = self.__inactive_players_knight__, self.__active_players_knight__
 
         # increment move count͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
         self.move_count = self.move_count + 1
 
         # If opponent is isolated͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
         if not self.get_active_moves():
-            return True, self.__inactive_players_queen__
+            return True, self.__inactive_players_knight__
 
         return False, None
 
@@ -239,32 +239,32 @@ class Board:
         '''
         b = Board(self.__player_1__, self.__player_2__,
                   initial_board='DEFAULT')
-        for key, value in self.__last_queen_move__.items():
-            b.__last_queen_move__[key] = value
-        for key, value in self.__queen_symbols__.items():
-            b.__queen_symbols__[key] = value
+        for key, value in self.__last_knight_move__.items():
+            b.__last_knight_move__[key] = value
+        for key, value in self.__knight_symbols__.items():
+            b.__knight_symbols__[key] = value
 
         b.__board_state__ = self.get_state()
         b.__active_player__ = self.__active_player__
         b.__inactive_player__ = self.__inactive_player__
-        b.__active_players_queen__ = self.__active_players_queen__
-        b.__inactive_players_queen__ = self.__inactive_players_queen__
+        b.__active_players_knight__ = self.__active_players_knight__
+        b.__inactive_players_knight__ = self.__inactive_players_knight__
         b.move_count = self.move_count
 
         return b
 
-    def forecast_move(self, queen_move):
+    def forecast_move(self, knight_move):
         """
         See what board state would result from making a particular move without changing the board state itself.
         Parameters:
-            queen_move: (int, int), Desired move to forecast. Takes the form of
+            knight_move: (int, int), Desired move to forecast. Takes the form of
             (column, row).
 
         Returns:
             (Board, bool, str): Resultant board from move, flag for game-over, winner (if game is over)
         """
         new_board = self.copy()
-        is_over, winner = new_board.__apply_move__(queen_move)
+        is_over, winner = new_board.__apply_move__(knight_move)
         return new_board, is_over, winner
 
     def get_active_player(self):
@@ -287,7 +287,7 @@ class Board:
         """
         return self.__inactive_player__
 
-    def get_active_players_queen(self):
+    def get_active_players_knight(self):
         """
         See which queen is inactive. Used mostly in play_isolation for display purposes.
         Parameters:
@@ -295,9 +295,9 @@ class Board:
         Returns:
             str: Queen name of the player who's waiting for opponent to take a turn
         """
-        return self.__active_players_queen__
+        return self.__active_players_knight__
 
-    def get_inactive_players_queen(self):
+    def get_inactive_players_knight(self):
         """
         See which queen is inactive. Used mostly in play_isolation for display purposes.
         Parameters:
@@ -305,7 +305,7 @@ class Board:
         Returns:
             str: Queen name of the player who's waiting for opponent to take a turn
         """
-        return self.__inactive_players_queen__
+        return self.__inactive_players_knight__
 
     def get_inactive_position(self):
         """
@@ -315,8 +315,8 @@ class Board:
         Returns:
            [int, int]: [col, row] of inactive player
         """
-        return tuple(self.__last_queen_move__[
-                   self.__inactive_players_queen__][0:2])
+        return tuple(self.__last_knight_move__[
+                   self.__inactive_players_knight__][0:2])
 
     def get_active_position(self):
         """
@@ -326,8 +326,8 @@ class Board:
         Returns:
            [int, int]: [col, row] of active player
         """
-        return tuple(self.__last_queen_move__[
-                   self.__active_players_queen__][0:2])
+        return tuple(self.__last_knight_move__[
+                   self.__active_players_knight__][0:2])
 
     def get_player_position(self, my_player=None):
         """
@@ -384,8 +384,8 @@ class Board:
            [(int, int)]: List of all legal moves. Each move takes the form of
             (column, row).
         """
-        q_move = self.__last_queen_move__[
-            self.__inactive_players_queen__]
+        q_move = self.__last_knight_move__[
+            self.__inactive_players_knight__]
 
         return self.__get_moves__(q_move)
 
@@ -398,8 +398,8 @@ class Board:
            [(int, int)]: List of all legal moves. Each move takes the form of
             (column, row).
         """
-        q_move = self.__last_queen_move__[
-            self.__active_players_queen__]
+        q_move = self.__last_knight_move__[
+            self.__active_players_knight__]
 
 
         return self.__get_moves__(q_move)
@@ -468,33 +468,28 @@ class Board:
         if move == self.NOT_MOVED or move == self.NOT_MOVED_LST:
             return self.get_first_moves()
 
-        c, r = move
+        return self.knight(move)
 
-        directions = [(-1, -1), (-1, 0), (-1, 1),
-                      (0, -1), (0, 1),
-                      (1, -1), (1, 0), (1, 1)]
+    def knight(self, move):
+        r, c = move
+
+        maybe = []
+
+        # Obtaining the moves clockwise͏︅͏︀͏︋͏︋͏󠄌͏󠄎͏󠄋͏󠄂͏︇͏︂
+        maybe.append( (r-2, c+1) )
+        maybe.append( (r-1, c+2) )
+        maybe.append( (r+1, c+2) )
+        maybe.append( (r+2, c+1) )
+        maybe.append( (r+2, c-1) )
+        maybe.append( (r+1, c-2) )
+        maybe.append( (r-1, c-2) )
+        maybe.append( (r-2, c-1) )
 
         moves = []
+        for (row,col) in maybe:
+            if self.move_is_in_board(row, col) and self.is_spot_open(row, col) and (row, col) not in moves:
+                moves.append((row, col))
 
-        for direction in directions:
-            for dist in range(1, max(self.height, self.width)):
-                col = direction[0] * dist + c
-                row = direction[1] * dist + r
-                # Allow for wrapping moves to other side of the board͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-                # if col < 0: col += self.height͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-                # if col >= self.height: col -= self.height͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-                # if row < 0: row += self.width͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-                # if row >= self.width: row -= self.width͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-                if self.move_is_in_board(col, row) and self.is_spot_open(col, row) and (col, row) not in moves:
-                    moves.append((col, row))
-
-                else:
-                    break
-        # if not moves:
-        #     print("No moves found for ", move)
-        #     print(self.print_board())
-        #     print(self.height)
-        #     print(self.width)
         return moves
 
     def get_first_moves(self):
@@ -531,7 +526,7 @@ class Board:
         """
         return self.__board_state__[col][row] == Board.BLANK
 
-    def is_spot_queen(self, col, row):
+    def is_spot_knight(self, col, row):
         """
         Sanity check for checking if a spot is occupied by a player
         Parameters:
@@ -540,8 +535,8 @@ class Board:
         Returns:
             bool: Whether the [col, row] position is currently occupied by a player's queen
         """
-        q1 = self.__queen_symbols__[self.__active_players_queen__]
-        q2 = self.__queen_symbols__[self.__inactive_players_queen__]
+        q1 = self.__knight_symbols__[self.__active_players_knight__]
+        q2 = self.__knight_symbols__[self.__inactive_players_knight__]
         return self.__board_state__[col][row] == q1 or self.__board_state__[col][row] == q2
 
 
@@ -569,8 +564,8 @@ class Board:
             Str: Visual interpretation of board state & possible moves for active player
         """
 
-        p1_c, p1_r = self.__last_queen_move__[self.__queen_1__]
-        p2_c, p2_r = self.__last_queen_move__[self.__queen_2__]
+        p1_c, p1_r = self.__last_knight_move__[self.__knight_1__]
+        p2_c, p2_r = self.__last_knight_move__[self.__knight_2__]
         b = self.__board_state__
 
         out = '  |'
@@ -582,9 +577,9 @@ class Board:
             out += str(i) + ' |'
             for j in range(len(b[i])):
                 if (i, j) == (p1_c, p1_r):
-                    out += self.__queen_symbols__[self.__queen_1__]
+                    out += self.__knight_symbols__[self.__knight_1__]
                 elif (i, j) == (p2_c, p2_r):
-                    out += self.__queen_symbols__[self.__queen_2__]
+                    out += self.__knight_symbols__[self.__knight_2__]
                 elif (i, j) in legal_moves or (j, i) in legal_moves:
                     out += 'o '
                 if b[i][j] == Board.BLANK:
@@ -628,7 +623,7 @@ class Board:
                 return time_limit - (curr_time_millis() - move_start)
 
             if print_moves:
-                print("\n", self.__active_players_queen__, " Turn")
+                print("\n", self.__active_players_knight__, " Turn")
 
             curr_move = self.__active_player__.move(
                 game_copy, time_left)  # queen added in return
@@ -641,14 +636,14 @@ class Board:
 
             # Handle Timeout͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
             if time_limit and time_left() <= 0:
-                return self.__inactive_players_queen__, move_history, \
-                    (self.__active_players_queen__ + " timed out. "+str(time_left()))
+                return self.__inactive_players_knight__, move_history, \
+                    (self.__active_players_knight__ + " timed out. " + str(time_left()))
 
             # Safety Check͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
             legal_moves = self.get_active_moves()
             if curr_move not in legal_moves:
-                return self.__inactive_players_queen__, move_history, \
-                    (self.__active_players_queen__ + " made an illegal move. "+str(curr_move))
+                return self.__inactive_players_knight__, move_history, \
+                    (self.__active_players_knight__ + " made an illegal move. " + str(curr_move))
 
             # Apply move to game.͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
             is_over, winner = self.__apply_move__(curr_move)
@@ -658,8 +653,8 @@ class Board:
                 print(self.copy().print_board())
 
             if is_over:
-                return self.__inactive_players_queen__, move_history, \
-                    self.__active_players_queen__ + " has no legal moves left."
+                return self.__inactive_players_knight__, move_history, \
+                    self.__active_players_knight__ + " has no legal moves left."
                 # if not self.get_active_moves():͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
                 #     return self.__active_players_queen__, move_history, \͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
                 #            (self.__inactive_players_queen__ + " has no legal moves left.")͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
@@ -681,12 +676,12 @@ class Board:
             return
 
         col, row = move_queen
-        my_pos = self.__last_queen_move__[self.__active_players_queen__]
-        opponent_pos = self.__last_queen_move__[self.__inactive_players_queen__]
+        my_pos = self.__last_knight_move__[self.__active_players_knight__]
+        opponent_pos = self.__last_knight_move__[self.__inactive_players_knight__]
 
-        self.__last_queen_move__[self.__active_players_queen__] = move_queen
+        self.__last_knight_move__[self.__active_players_knight__] = move_queen
         self.__board_state__[col][row] = \
-            self.__queen_symbols__[self.__active_players_queen__]
+            self.__knight_symbols__[self.__active_players_knight__]
 
         if self.move_is_in_board(my_pos[0], my_pos[1]):
             self.__board_state__[my_pos[0]][my_pos[1]] = Board.BLOCKED
@@ -697,9 +692,9 @@ class Board:
         self.__inactive_player__ = tmp
 
         # Rotate the active queen͏󠄂͏️͏󠄌͏󠄎͏︄͏󠄅͏︊
-        tmp = self.__active_players_queen__
-        self.__active_players_queen__ = self.__inactive_players_queen__
-        self.__inactive_players_queen__ = tmp
+        tmp = self.__active_players_knight__
+        self.__active_players_knight__ = self.__inactive_players_knight__
+        self.__inactive_players_knight__ = tmp
 
         self.move_count = self.move_count + 1
 
@@ -732,13 +727,13 @@ def game_as_text(winner, move_history, termination="", board=None):
         if move[0] != Board.NOT_MOVED and move[0] is not None:
             ans.write(board.print_board())
             board.__apply_move_write__(move[0])
-            ans.write("\n\n" + board.__queen_1__ + " moves to (" + str(move[0][0]) + "," + str(move[0][1]) + ")\r\n")
+            ans.write("\n\n" + board.__knight_1__ + " moves to (" + str(move[0][0]) + "," + str(move[0][1]) + ")\r\n")
 
 
         if len(move) > 1 and move[1] != Board.NOT_MOVED and move[0] is not None:
             ans.write(board.print_board())
             board.__apply_move_write__(move[1])
-            ans.write("\n\n" + board.__queen_2__ + " moves to (" + str(move[1][0]) + "," + str(move[1][1]) + ")\r\n")
+            ans.write("\n\n" + board.__knight_2__ + " moves to (" + str(move[1][0]) + "," + str(move[1][1]) + ")\r\n")
 
 
         last_move = move
