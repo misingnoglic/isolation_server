@@ -90,10 +90,21 @@ def ServerAgentGenerator(parent_class):
             return (type(self) == type(other) and self.name == other.name) or (isinstance(other, str) and self.name == other)
     return ServerAgent
 
+# From https://stackoverflow.com/a/78702027/3946214
+HEADERS  = {
+    "Accept": "application/json",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Connection": "keep-alive",
+    "Host": URL,
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+}
 
 def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds, player_to_use):
     payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret, 'num_rounds': num_rounds}
-    new_game = requests.post(NEW_GAME, data=payload)
+    session = requests.Session()
+    session.headers = HEADERS
+
+    new_game = session.post(NEW_GAME, data=payload, timeout=2)
     if not new_game.ok:
         print('Error', new_game.json())
         return
@@ -108,7 +119,7 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
     agent = ServerAgentGenerator(agent_class)(my_name)
 
     while True:
-        game_status_request = requests.get(GAME_STATUS % game_id)
+        game_status_request = session.get(GAME_STATUS % game_id, timeout=1)
         if not game_status_request.ok:
             print('Error', game_status_request.text)
             return
@@ -117,13 +128,13 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
         time.sleep(PING_INTERVAL)
 
     print('game started')
-    play_until_game_is_over(game_id, my_name, my_secret, agent)
+    play_until_game_is_over(game_id, my_name, my_secret, agent, session)
 
 
-def play_until_game_is_over(game_id, my_name, my_secret, agent):
+def play_until_game_is_over(game_id, my_name, my_secret, agent, session):
     while True:
         print('Time before request', datetime.datetime.utcnow())
-        game_status_request = requests.get(GAME_STATUS % game_id)
+        game_status_request = session.get(GAME_STATUS % game_id, timeout=1)
         print('Time after request', datetime.datetime.utcnow())
         if not game_status_request.ok:
             print('Error', game_status_request)
@@ -161,9 +172,10 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         if move is None:
             raise ValueError('Move is None')
         print(move)
-        make_move_request = requests.post(
+        make_move_request = session.post(
             MAKE_MOVE % game_id, data={
-                'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': datetime.datetime.utcnow().timestamp()})
+                'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': datetime.datetime.utcnow().timestamp()
+            }, timeout=2)
         if not make_move_request.ok:
             print('Error', make_move_request.text)
             return
@@ -172,7 +184,9 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
 
 
 def join_game(game_id, my_name, player_to_use):
-    join_game = requests.post(JOIN_GAME % game_id, data={'player_name': my_name})
+    session = requests.Session()
+    session.headers = HEADERS
+    join_game = session.post(JOIN_GAME % game_id, data={'player_name': my_name}, timeout=2)
     print(join_game.json())
     if not join_game.ok:
         print('Error', join_game.json())
@@ -189,7 +203,7 @@ def join_game(game_id, my_name, player_to_use):
     # Monkeypatch eq on agent to test if the names are equal
 
     print('successfully joined game')
-    play_until_game_is_over(game_id, my_name, my_secret, agent)
+    play_until_game_is_over(game_id, my_name, my_secret, agent, session)
 
 
 def observe_game(game_id):
