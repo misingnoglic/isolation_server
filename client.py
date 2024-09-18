@@ -80,14 +80,16 @@ def test_run():
         print(make_move_request.json())
         time.sleep(PING_INTERVAL)
 
+
 def ServerAgentGenerator(parent_class):
     class ServerAgent(parent_class):
-        def __init__(self, name):
-            super().__init__()
+        def __init__(self, name, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.name = name
         def __eq__(self, other):
             return (type(self) == type(other) and self.name == other.name) or (isinstance(other, str) and self.name == other)
     return ServerAgent
+
 
 def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds, player_to_use):
     payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret, 'num_rounds': num_rounds}
