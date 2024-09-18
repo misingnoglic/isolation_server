@@ -245,7 +245,7 @@ def get_game_status(game_id):
     if game_status['game_status'] == constants.GameStatus.IN_PROGRESS and game_status['last_move_time'] and game_status['last_move_time'] + game_status['time_limit'] + 15 < request_time:
         # Update status to finished and set the winner to the other player
         _end_game(game_id, game_status['player1'] if game_status['current_queen'] == game_status['player2'] else game_status['player2'], reason=f'Timeout, status checked and significant time after last move')
-    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and (game_status['created_at'] + 60 * 10) < request_time:
+    if game_status['game_status'] == constants.GameStatus.NEED_SECOND_PLAYER and (game_status['created_at'] + 60 * 20) < request_time:
         # Update status to finished and set the winner to the other player
         if game_status['discord']:
             announce_game_start_timeout(game_id)
