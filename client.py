@@ -120,7 +120,9 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
 
 def play_until_game_is_over(game_id, my_name, my_secret, agent):
     while True:
+        print('Time before request', datetime.datetime.utcnow())
         game_status_request = requests.get(GAME_STATUS % game_id)
+        print('Time after request', datetime.datetime.utcnow())
         if not game_status_request.ok:
             print('Error', game_status_request)
             return
@@ -147,8 +149,10 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         game = Board.from_json(game_status_request.json()['game_state'])
         print(game.print_board())
         print(f'Last move time: {game_status_request.json()["last_move_time"]}')
-        start_time = time.time()
-        time_left = lambda: 1000 * (game_status_request.json()['time_left'] - (time.time() - start_time))
+        start_time = datetime.datetime.utcnow().timestamp()
+        print('Server time left', game_status_request.json()['time_left'])
+        print('Client time left', game_status_request.json()['time_left'] - (datetime.datetime.utcnow().timestamp() - start_time))
+        time_left = lambda: 1000 * (game_status_request.json()['time_left'] - (datetime.datetime.utcnow().timestamp() - start_time))
         print('Time left start', time_left())
         move = agent.move(game, time_left)
         print('Time left end', time_left())
