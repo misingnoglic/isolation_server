@@ -8,6 +8,7 @@ creating games and sending moves to each other without exposing their inner logi
 # Client Setup - Needed to create and join games
 
 - Install requirements with `pip install -r requirements_client.txt`
+- Bring in your `submission.py` from the assignment, modify it to import Board from server_isolation.
 - Modify variables in client_config.py
  - Import your bot from the assignment and set it to DEFAULT_PLAYER_CLASS.
 - Host a game with `python client.py --host --name <your name> --time_limit <time_limit (s)>`
