@@ -20,7 +20,7 @@ class RandomPlayer(Player):
         self.secret = secret
 
     def move(self, game, time_left):
-        time.sleep(min(1, time_left()//2000))
+        time.sleep(0.1)
         if not game.get_player_moves(self):
             return None
         else:

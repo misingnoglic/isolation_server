@@ -80,6 +80,14 @@ def test_run():
         print(make_move_request.json())
         time.sleep(PING_INTERVAL)
 
+def ServerAgentGenerator(parent_class):
+    class ServerAgent(parent_class):
+        def __init__(self, name):
+            super().__init__()
+            self.name = name
+        def __eq__(self, other):
+            return (type(self) == type(other) and self.name == other.name) or (isinstance(other, str) and self.name == other)
+    return ServerAgent
 
 def host_game(my_name, time_limit, start_board, num_random_turns, discord, secret, num_rounds, player_to_use):
     payload = {'player_name': my_name, 'time_limit': int(time_limit), 'start_board': start_board, 'num_random_turns': num_random_turns, 'discord': discord, 'secret': secret, 'num_rounds': num_rounds}
@@ -92,10 +100,10 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
     print(new_game.json()['game_id'])
     my_secret = new_game.json()['player_secret']
     if player_to_use:
-        agent = client_config.PLAYER_CLASSES[player_to_use]()
+        agent_class = client_config.PLAYER_CLASSES[player_to_use]
     else:
-        agent = PLAYER_CLASS()
-    agent.name = my_name
+        agent_class = PLAYER_CLASS
+    agent = ServerAgentGenerator(agent_class)(my_name)
 
     while True:
         game_status_request = requests.get(GAME_STATUS % game_id)
@@ -156,6 +164,7 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent):
         time.sleep(PING_INTERVAL)
 
 
+
 def join_game(game_id, my_name, player_to_use):
     join_game = requests.post(JOIN_GAME % game_id, data={'player_name': my_name})
     print(join_game.json())
@@ -165,10 +174,14 @@ def join_game(game_id, my_name, player_to_use):
     print(join_game.json())
     my_secret = join_game.json()['player_secret']
     if player_to_use:
-        agent = client_config.PLAYER_CLASSES[player_to_use]()
+        agent_class = client_config.PLAYER_CLASSES[player_to_use]
     else:
-        agent = PLAYER_CLASS()
-    agent.name = my_name
+        agent_class = PLAYER_CLASS
+
+
+    agent = ServerAgentGenerator(agent_class)(my_name)
+    # Monkeypatch eq on agent to test if the names are equal
+
     print('successfully joined game')
     play_until_game_is_over(game_id, my_name, my_secret, agent)
 
@@ -204,7 +217,7 @@ def observe_game(game_id):
 @click.option('--start_board', help='Start board (DEFAULT or CASTLE or RANDOM or JSON dumped custom board of spaces and Xs)', default='DEFAULT')
 @click.option('--num_random_turns', help='Number of random turns to make at the start', default=0, type=int)
 @click.option('--name', help='Your name')
-@click.option('--time_limit', default=None, help='Time limit for each move')
+@click.option('--time_limit', default=5, help='Time limit for each move')
 @click.option('--discord/--no_discord', help='Whether to replay on class Discord server', default=True, is_flag=True)
 @click.option('--secret', help='Whether to announce the game to class Discord server', is_flag=True)
 @click.option('--num_rounds', help='Number of rounds to play', default=1, type=int)
