@@ -68,7 +68,7 @@ def host_game():
         webhook = DiscordWebhook(url=server_secrets.ANNOUNCEMENT_WEBHOOK_URL)
         start_board_str = start_board if len(start_board) < 20 else "CUSTOM"
         rules = f'start_board = {start_board_str}, time limit = {request.form["time_limit"]}, num rounds = {num_rounds}, num_random_turns = {num_random_turns}'
-        command = f'python client.py --join --game_id {game_id} --player_name YOURNAME'
+        command = f'python client.py --join --game_id {game_id} --name YOURNAME'
         embed = DiscordEmbed(title="New Game!", description=f'{request.form["player_name"]} is waiting for a player, join them with this game ID: {game_id}. Rules are: {rules}\nJoin with this command: {command}')
         webhook.add_embed(embed)
         webhook.execute()
