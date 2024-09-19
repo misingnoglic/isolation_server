@@ -172,6 +172,12 @@ def play_until_game_is_over(game_id, my_name, my_secret, agent, session):
         if move is None:
             raise ValueError('Move is None')
         print(move)
+        if time_left() - start_time < 1000:
+            # Don't want to overwhelm the server
+            if time_left() > 2000:
+                time.sleep(1)
+            elif time_left() > 1000:
+                time.sleep(0.5)
         make_move_request = session.post(
             MAKE_MOVE % game_id, data={
                 'player_name': my_name, 'player_secret': my_secret, 'move': json.dumps(move), 'client_time': datetime.datetime.utcnow().timestamp()
