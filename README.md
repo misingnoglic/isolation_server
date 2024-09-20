@@ -10,7 +10,7 @@ creating games and sending moves to each other without exposing their inner logi
 - Install requirements with `pip install -r requirements_client.txt`
 - Bring in your `submission.py` from the assignment.
 - Optionally, modify variables in client_config.py
-  - Change the name/import of your bot **if** it's something other than `CustomBot`
+  - Change the name/import of your bot **if** it's something other than `CustomBotPlayer`
   - Change the `DEFAULT_PLAYER_NAME` if you'd like your display name to be something other than your os username
   
 - Host a game with `python client.py --host`
@@ -40,7 +40,7 @@ creating games and sending moves to each other without exposing their inner logi
     </li>
   </ul>
   </details>
-  
+
 - Join a game with `python client.py --join --game_id <game_id>`
   - optionally add `--name <name>` to use a custom display name
 - Observe a game with `python client.py --observe --game_id <game_id>` (or just watch on Discord).
