@@ -8,19 +8,41 @@ creating games and sending moves to each other without exposing their inner logi
 # Client Setup - Needed to create and join games
 
 - Install requirements with `pip install -r requirements_client.txt`
-- Bring in your `submission.py` from the assignment, modify it to import Board from server_isolation.
-- Modify variables in client_config.py
- - Import your bot from the assignment and set it to DEFAULT_PLAYER_CLASS.
-- Host a game with `python client.py --host --name <your name> --time_limit <time_limit (s)>`
+- Bring in your `submission.py` from the assignment.
+- Optionally, modify variables in client_config.py
+  - Change the name/import of your bot **if** it's something other than `CustomBot`
+  - Change the `DEFAULT_PLAYER_NAME` if you'd like your display name to be something other than your os username
+  
+- Host a game with `python client.py --host`
   - This will give you an ID you can send to someone to join, or that someone can read on Discord.
-  - Some other options:
-    - `--start_board <start_board>`: The board to start the game with. Can be "DEFAULT", "CASTLE", or a JSON string of an NxM array of spaces and X's
-    - `--secret`: If toggled, your code won't be posted on Discord. Good if you want someone specific to join.
-    - `--no_discord`: If toggled, your game won't be broadcast on Discord.
-    - `--num_random_turns <num_random_turns>`: If set, the game will start with agents making N random moves in the beginning
-    - `--num_rounds <num_rounds>`: If set, the game will play N rounds of the game with the same settings
-    - `--player_to_use <player_namee>`: If set, the game will use the player set in client_config.py with that name, instead of the DEFAULT_PLAYER_CLASS
-- Join a game with `python client.py --join --name <name> --game_id <game_id>`
+  <details>
+  <summary>Some other <b>optional</b> flags</summary>
+  <ul>
+    <li>
+      <code>--name &ltname&gt</code>: Display name to use, defaults to logged in os username
+    </li>
+    <li>
+      <code>--start_board &ltstart_board&gt</code>: The board to start the game with. Can be "DEFAULT", "CASTLE", or a JSON string of an NxM array of spaces and X's
+    </li>
+    <li>
+      <code>--secret</code>: If toggled, your game ID won't be posted on Discord. Good if you want someone specific to join.
+    </li>
+    <li>
+      <code>--no_discord</code>: If toggled, your game won't be broadcast on Discord.
+    </li>
+    <li>
+      <code>--num_random_turns &ltnum_random_turns&gt</code>: If set, the game will start with agents making N random moves in the beginning
+    <li>
+      <code>--num_rounds &ltnum_rounds&gt</code>: If set, the game will play num_rounds rounds of the game with the same settings
+    </li>
+    <li>
+      <code>--player_to_use &ltplayer_name&gt</code>: If set, the game will use the player set in client_config.py with that name, instead of the DEFAULT_PLAYER_CLASS
+    </li>
+  </ul>
+  </details>
+  <br />
+- Join a game with `python client.py --join --game_id <game_id>`
+  - optionally add `--name <name>` to use a custom display name
 - Observe a game with `python client.py --observe --game_id <game_id>` (or just watch on Discord).
 
 

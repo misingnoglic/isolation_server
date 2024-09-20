@@ -3,7 +3,7 @@ from test_players import RandomPlayer
 # from submission import CustomPlayer
 import constants
 import client_config
-from server_isolation import Board
+from isolation import Board
 import json
 import time
 import datetime
@@ -22,6 +22,8 @@ JOIN_GAME = URL + '/game/%s/join'
 PLAYER_CLASS = client_config.DEFAULT_PLAYER_CLASS
 
 PING_INTERVAL = 0.5
+
+DEFAULT_USER = client_config.DEFAULT_PLAYER_NAME
 
 def test_run():
     player_1_name = 'player1'
@@ -242,7 +244,7 @@ def observe_game(game_id):
 @click.option('--game_id', help='Game ID to join')
 @click.option('--start_board', help='Start board (DEFAULT or CASTLE or RANDOM or JSON dumped custom board of spaces and Xs)', default='DEFAULT')
 @click.option('--num_random_turns', help='Number of random turns to make at the start', default=0, type=int)
-@click.option('--name', help='Your name')
+@click.option('--name', help='Your name', default=DEFAULT_USER)
 @click.option('--time_limit', default=5, help='Time limit for each move')
 @click.option('--discord/--no_discord', help='Whether to replay on class Discord server', default=True, is_flag=True)
 @click.option('--secret', help='Whether to announce the game to class Discord server', is_flag=True)
