@@ -40,7 +40,7 @@ creating games and sending moves to each other without exposing their inner logi
     </li>
   </ul>
   </details>
-  <br />
+  
 - Join a game with `python client.py --join --game_id <game_id>`
   - optionally add `--name <name>` to use a custom display name
 - Observe a game with `python client.py --observe --game_id <game_id>` (or just watch on Discord).
