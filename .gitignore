@@ -8,3 +8,7 @@ test_isolated.py
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+.venv/
+__pycache__/
+host_game.bat
