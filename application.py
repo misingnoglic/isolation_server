@@ -166,47 +166,57 @@ def join_game(game_id):
     player_secret = str(uuid.uuid4())
 
     session = DBSession()
-    cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
-    if cur_game is None:
-        return flask.jsonify({'status': 'error', 'message': 'Game not found or not waiting for a player'}), 400
-    # Get the cur_game's player
-    host_player = cur_game.player1
-    if host_player == player_name:
-        return flask.jsonify({'status': 'error', 'message': 'You cannot join your own game'}), 400
+    with session.begin():
+        cur_game = session.query(IsolationGame).with_for_update().filter(IsolationGame.uuid == game_id).one()
+        if cur_game is None:
+            return flask.jsonify({'status': 'error', 'message': 'Game not found or not waiting for a player'}), 400
+        if cur_game.player2:
+            return flask.jsonify({'status': 'error', 'message': 'Game already has two players'}), 400
+        # Get the cur_game's player
+        host_player = cur_game.player1
+        if host_player == player_name:
+            return flask.jsonify({'status': 'error', 'message': 'You cannot join your own game'}), 400
 
-    first_player = random.choice([player_name, host_player])
-    second_player = host_player if first_player == player_name else player_name
-    board = cur_game.start_board
-    if board == "DEFAULT":
-        board = copy.deepcopy(constants.DEFAULT_BOARD)
-    elif board == "CASTLE":
-        board = copy.deepcopy(constants.CASTLE_BOARD)
-    elif board == "RANDOM":
-        board = gen_random_board()
-    else:
-        board = json.loads(board)
+        cur_game.player2 = request.form['player_name']
+        cur_game.player2_secret = player_secret
+        session.commit()
+        session.close()
 
-    num_random_turns = cur_game.num_random_turns
-    try:
-        last_move, new_game_json = _apply_random_moves_to_board(board, num_random_turns, host_player, player_name, first_player, second_player)
-    except ValueError as e:
-        _end_game(game_id, '', reason=str(e))
-        return flask.jsonify({'status': 'error', 'message': str(e)}), 400
-    thread_id = ''
-    # Need to add thread ID to DB, that's why we're calling it before.
-    if cur_game.discord:
-        thread_id = start_game_thread(host_player, player_name, game_id)
-        announce_game_start_in_main_channel(host_player, player_name, thread_id)
-    cur_game.player2 = request.form['player_name']
-    cur_game.player2_secret = player_secret
-    cur_game.game_status = constants.GameStatus.IN_PROGRESS
-    cur_game.game_state = new_game_json
-    cur_game.current_queen = first_player
-    cur_game.last_move = last_move
-    cur_game.thread_id = thread_id
-    session.add(cur_game)
-    session.commit()
-    session.close()
+    # New session
+    session = DBSession()
+    with session.begin():
+        cur_game = session.query(IsolationGame).filter(IsolationGame.uuid == game_id).one()
+        first_player = random.choice([player_name, host_player])
+        second_player = host_player if first_player == player_name else player_name
+        board = cur_game.start_board
+        if board == "DEFAULT":
+            board = copy.deepcopy(constants.DEFAULT_BOARD)
+        elif board == "CASTLE":
+            board = copy.deepcopy(constants.CASTLE_BOARD)
+        elif board == "RANDOM":
+            board = gen_random_board()
+        else:
+            board = json.loads(board)
+
+        num_random_turns = cur_game.num_random_turns
+        try:
+            last_move, new_game_json = _apply_random_moves_to_board(board, num_random_turns, host_player, player_name, first_player, second_player)
+        except ValueError as e:
+            _end_game(game_id, '', reason=str(e))
+            return flask.jsonify({'status': 'error', 'message': str(e)}), 400
+        thread_id = ''
+        # Need to add thread ID to DB, that's why we're calling it before.
+        if cur_game.discord:
+            thread_id = start_game_thread(host_player, player_name, game_id)
+            announce_game_start_in_main_channel(host_player, player_name, thread_id)
+        cur_game.game_status = constants.GameStatus.IN_PROGRESS
+        cur_game.game_state = new_game_json
+        cur_game.current_queen = first_player
+        cur_game.last_move = last_move
+        cur_game.thread_id = thread_id
+        session.add(cur_game)
+        session.commit()
+        session.close()
     return flask.jsonify({'player_secret': player_secret, 'first_player': first_player})
 
 

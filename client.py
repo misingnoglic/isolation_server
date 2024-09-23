@@ -119,7 +119,7 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
     agent = ServerAgentGenerator(agent_class)(my_name)
 
     while True:
-        game_status_request = session.get(GAME_STATUS % game_id, timeout=1)
+        game_status_request = session.get(GAME_STATUS % game_id, timeout=2)
         if not game_status_request.ok:
             print('Error', game_status_request.text)
             return
@@ -134,7 +134,7 @@ def host_game(my_name, time_limit, start_board, num_random_turns, discord, secre
 def play_until_game_is_over(game_id, my_name, my_secret, agent, session):
     while True:
         print('Time before request', datetime.datetime.utcnow())
-        game_status_request = session.get(GAME_STATUS % game_id, timeout=1)
+        game_status_request = session.get(GAME_STATUS % game_id, timeout=2)
         print('Time after request', datetime.datetime.utcnow())
         if not game_status_request.ok:
             print('Error', game_status_request)
