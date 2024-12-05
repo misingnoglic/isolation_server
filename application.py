@@ -3,7 +3,7 @@ import uuid
 from flask import request
 import random
 import json
-from server_isolation import Board
+from isolation import Board
 import constants
 from discord_webhook import DiscordWebhook, DiscordEmbed
 try:
